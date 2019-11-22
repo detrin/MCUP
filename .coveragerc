@@ -1,0 +1,8 @@
+[run]
+include =
+    mcup/*
+omit =
+    mcup/tests/*
+
+[report]
+precision=2
