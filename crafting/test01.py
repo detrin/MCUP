@@ -13,13 +13,28 @@ def pdf(x, mu, sigma):
     x = float(x - mu) / sigma
     return np.exp(-x*x/2.0) / np.sqrt(2.0*np.pi) / sigma
 
-def fun(x, a, b, c, d):
+def fun1(x, a, b):
+    return a*x+b
+
+def fun2(x, a, b, c, d):
     return a*x**3+b*x**2+c*x+d
 
-ve = VE(fun, x_bounds=[-1, 1], sample_num=100, x_error=0.5, y_error=0, params=[1, -5, 2, 5])
+def fun3(x, a, b):
+    return a/(x-b)
+
+def fun4(x, a, b):
+    return a*np.exp(b*x)
+
+def fun5(x, a, b, c):
+    return a*np.sin(b*(x-c))
+
+def fun(x, a, b):
+    return np.exp(-b*x)*np.cos(a*x)
+
+ve = VE(fun, x_bounds=[0, 30], sample_num=20, x_error=1, y_error=0.1, params=[0.05, 0.5])
 lsq = LSQ("scipy")
 lsq.set_params(method='lm', loss='linear', max_nfev=1000)
-w_0 = [1, 1, 1, 1]
+w_0 = [0.05, 0.5]
 
 N_runs = 10**4
 timeFlag = time.time()
