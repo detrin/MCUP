@@ -22,6 +22,7 @@ class PropagatorErrorEstimator(object):
         self.w_dist = None
         self.fun = None
         self.lsq = None
+        self.lsq_method = 'normal'
 
     def Core(self, run_i):
         x_difference = np.zeros((self.data_len), dtype=self.dtype)
@@ -31,11 +32,10 @@ class PropagatorErrorEstimator(object):
             y_difference[ind] = np.random.normal(0, self.ye[ind])
         x_new = self.x + x_difference
         y_new = self.y + y_difference
-        w, var = self.lsq.fit(self.fun, x_new, y_new, self.w_0)
+        w, var = self.lsq.fit(self.fun, x_new, y_new, self.w_0, self.lsq_method)
         return [w, var]
 
-    def run(
-            self, lsq, fun, sample_num=10**4, n_thread=1):
+    def run(self, lsq, fun, sample_num=10**4, n_thread=1, method='normal'):
         if not isinstance(lsq, LeastSquares):
             raise TypeError("`lsq` must be LSQ object.")
 
@@ -43,10 +43,11 @@ class PropagatorErrorEstimator(object):
         self.fun = fun
         self.var_dist = np.zeros((sample_num, self.param_len), dtype=self.dtype)
         self.w_dist = np.zeros((sample_num, self.param_len), dtype=self.dtype)
+        self.lsq_method = method
 
         if n_thread == 1:
             for run_i in range(sample_num):
-                w_dist[run_i], var_dist[run_i] = self.Core(run_i)
+                self.w_dist[run_i], self.var_dist[run_i] = self.Core(run_i)
         else:
             with closing(Pool(processes=n_thread)) as pool:
                 result = pool.map(self.Core, range(sample_num))

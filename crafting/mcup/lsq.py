@@ -2,6 +2,7 @@
 
 from scipy.optimize import least_squares
 import numpy as np
+from scipy.misc import derivative
 
 class LeastSquares(object):
     '''Core object for LSQ evaluation with different solvers.'''
@@ -19,7 +20,7 @@ class LeastSquares(object):
             self, jac='2-point', bounds=(-np.inf, np.inf), method='trf',
             ftol=1e-8, xtol=1e-8, gtol=1e-8, x_scale=1.0, loss='linear',
             f_scale=1.0, diff_step=None, tr_solver=None, tr_options={},
-            jac_sparsity=None, max_nfev=None, verbose=0):
+            jac_sparsity=None, max_nfev=10**5, verbose=0):
         '''Setting and checking input parameters for different solvers.'''
         self.jac = jac
         self.bounds = bounds
@@ -39,19 +40,50 @@ class LeastSquares(object):
 
         return True
     
-    def fit(self, fun, x, y, w_0):
+    def fit(self, fun, x, y, w_0, method='normal'):
         '''Fit function using LSQ solver.'''
-        def fun_diff(w):
-            return fun(x, *w) - y
 
-        lsq_result = self.lsq_solver(
-                fun_diff, w_0,
-                jac=self.jac, bounds=self.bounds, method=self.method, ftol=self.ftol, 
-                xtol=self.xtol, gtol=self.gtol, x_scale=self.x_scale, loss=self.loss, 
-                f_scale=self.f_scale, diff_step=self.diff_step, tr_solver=self.tr_solver, 
-                tr_options=self.tr_options, jac_sparsity=self.jac_sparsity, 
-                max_nfev=self.max_nfev, verbose=self.verbose
+        def minimize_d(x_i, y_i, w):
+            # TODO: in future you HAVE TO change props for lsq, try to derivate it from fun
+            f_dist = lambda x: (x-x_i)**2 + (fun(x, *w)-y_i)**2
+
+            lsq_result = self.lsq_solver(
+                f_dist, [x_i],
+                method='lm', max_nfev=10
             )
+            return lsq_result.cost
+
+        def fun_deming(w):
+            cost = 0
+            for i in range(len(x)):
+                cost += minimize_d(x[i], y[i], w)
+            return cost
+
+        def fun_normal(w):
+                return fun(x, *w) - y
+
+        if method == 'deming':
+            # TODO: in future incorporate solution for special cases, 
+            # it will by much faster than numerical solution 
+            lsq_result = self.lsq_solver(
+                    fun_deming, w_0,
+                    jac=self.jac, bounds=self.bounds, method=self.method, ftol=self.ftol, 
+                    xtol=self.xtol, gtol=self.gtol, x_scale=self.x_scale, loss=self.loss, 
+                    f_scale=self.f_scale, diff_step=self.diff_step, tr_solver=self.tr_solver, 
+                    tr_options=self.tr_options, jac_sparsity=self.jac_sparsity, 
+                    max_nfev=self.max_nfev, verbose=self.verbose
+                )
+
+        elif method == 'normal':
+            lsq_result = self.lsq_solver(
+                    fun_normal, w_0,
+                    jac=self.jac, bounds=self.bounds, method=self.method, ftol=self.ftol, 
+                    xtol=self.xtol, gtol=self.gtol, x_scale=self.x_scale, loss=self.loss, 
+                    f_scale=self.f_scale, diff_step=self.diff_step, tr_solver=self.tr_solver, 
+                    tr_options=self.tr_options, jac_sparsity=self.jac_sparsity, 
+                    max_nfev=self.max_nfev, verbose=self.verbose
+                )
+
         J = lsq_result.jac
         cov = np.linalg.inv(J.T.dot(J))
         var = np.sqrt(np.diagonal(cov))
