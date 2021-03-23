@@ -30,29 +30,17 @@ class Tox(TestCommand):
         sys.exit(errno)
 
 
-def read_content(filepath):
-    with open(filepath) as fobj:
-        return fobj.read()
-
-
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 1 - Planning",
     "Intended Audience :: Science/Research",
-    "Intended Audience :: Education",
     "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.5",
     "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: Implementation :: CPython",
-    "Programming Language :: Python :: Implementation :: PyPy",
+    "Programming Language :: Python :: 3.8",
 ]
 
-
-long_description = read_content("README.md")
-
-requires = ["setuptools", "numpy", "scipy", "matplotlib"]
+requires = ["setuptools", "numpy", "scipy"]
 
 extras_require = {
     "reST": ["Sphinx"],
@@ -62,9 +50,10 @@ if os.environ.get("READTHEDOCS", None):
 
 setup(
     name="mcup",
-    version="0.1.7",
+    version="0.1.9",
     description="MCUP will propagate uncertainty of your data points to the parameters of the regression using a Monte Carlo approach.",
-    long_description=long_description,
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
     keywords="physics, stats, error, uncertainty, propagation",
     author="Daniel Herman",
     author_email="daniel.herman@pm.me",

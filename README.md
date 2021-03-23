@@ -28,11 +28,12 @@ This repository will contain implementations of several PEE algorithms as well a
 1. Implement a naive PEE, a DistGen and QDD
 2. Improve the performance of least-squares regression to speed up Monte-Carlo
 3. Study the results of PEE
-    * on polynomials up to degree 3
-    * for true values equidistant on the x axis
-    * without systematic error
-    * with random error being of the same order on all data points
-    * with errorbars exactly matching the measurement error
+   
+   * on polynomials up to degree 3
+   * for true values equidistant on the x axis
+   * without systematic error
+   * with random error being of the same order on all data points
+   * with errorbars exactly matching the measurement error
 
 4. Implement more PEEs and compare them
 5. Compare on a wider variety of experiments

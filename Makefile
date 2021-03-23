@@ -14,7 +14,8 @@ PWD ?= pwd_unknown
 
 # retrieve NAME from /variables file
 MODULE_NAME = mcup
-MODULE_VERSION = 0.1.7
+MODULE_VERSION = 0.1.0
+MODULE_TEST_VERSION = 0.1.9
 
 # cli prefix for commands to run in container
 RUN_DOCK = \
@@ -40,26 +41,48 @@ module:
 	@# then run regular setup.py to build the module
 	$(RUN_DOCK) "cd ~/MCUP \
 		&& find ./ -type l -maxdepth 1 |xargs rm -f \
+		&& rm -rf dist \
 		&& python3 setup.py sdist"
 
-.PHONY: pylint
-pylint:
-	$(RUN_DOCK) "cd ~/MCUP/mcup \
-		&& pylint --rcfile=../.pylintrc * -f parseable"
+.PHONY: module_local
+module_local:
+	rm -rf ./dist 
+	python3.7 setup.py sdist 
+	twine check dist/$(MODULE_NAME)-$(MODULE_VERSION)*
+
+.PHONY: module_test_local
+module_local:
+	rm -rf ./dist 
+	python3.7 setup.py sdist 
+	twine check dist/$(MODULE_NAME)-$(MODULE_TEST_VERSION)*
 
 .PHONY: upload
 upload:
 	$(RUN_DOCK) "twine upload ~/$(MODULE_NAME)/dist/$(MODULE_NAME)-$(MODULE_VERSION)*"
 
+.PHONY: upload_local
+upload_local:
+	twine upload dist/$(MODULE_NAME)-$(MODULE_VERSION)*
+
 .PHONY: upload_test
 upload_test:
 	$(RUN_DOCK) "twine upload --repository-url https://test.pypi.org/legacy/ \
-		~/$(MODULE_NAME)/dist/$(MODULE_NAME)-$(MODULE_VERSION)*"
+		~/$(MODULE_NAME)/dist/$(MODULE_NAME)-$(MODULE_TEST_VERSION)*"
 
+.PHONY: upload_test_local
+upload_test_local:
+	twine upload --repository-url https://test.pypi.org/legacy/ \
+		dist/$(MODULE_NAME)-$(MODULE_TEST_VERSION)*
 
 .PHONY: clean
 clean:
-	$(RUN_DOCK) "cd ~/$(MODULE_NAME) \
+	$(RUN_DOCK) "cd ~/MCUP \
 		&& rm -rf ./build ./dist ./*.egg-info \
 		&& find ./ -type l -maxdepth 1 |xargs rm -f \
-		&& find ./$(MODULE) -type d -name '__pycache__' |xargs rm -rf"
+		&& find ./mcup -type d -name '__pycache__' |xargs rm -rf"
+
+.PHONY: docs
+docs:
+	sphinx-apidoc -f -o docs/source mcup tests
+	rm docs/source/modules.rst
+	python3 setup.py build_sphinx

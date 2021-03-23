@@ -10,7 +10,7 @@ RUN apt-get update \
     && apt-get install dpkg-dev -y \ 
     && apt-get install libjpeg-dev -y 
 
-RUN python3 -m pip install numpy scipy wheel pylint twine \
+RUN python3 -m pip install numpy scipy wheel twine \
     && rm -rf /opt/build/* \
     && rm -rf /var/cache/apk/* \
     && rm -rf /root/.cache/* \
