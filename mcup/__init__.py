@@ -1,3 +1,3 @@
-'''__init__.py'''
+"""__init__.py"""
 
-from .test import *
+from .mcup import fun

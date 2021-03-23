@@ -1,4 +1,4 @@
-'''__init__.py'''
+"""__init__.py"""
 
 from .lsq import LeastSquares
 from .experiment import VirtualExperiment

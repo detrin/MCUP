@@ -16,45 +16,35 @@ PWD ?= pwd_unknown
 MODULE_NAME = mcup
 MODULE_VERSION = 0.1.7
 
-ifeq ($(user),)
-# USER retrieved from env, UID from shell.
-HOST_USER ?= $(strip $(if $(USER),$(USER),nodummy))
-HOST_UID ?= $(strip $(if $(shell id -u),$(shell id -u),4000))
-else
-# allow override by adding user= and/ or uid=  (lowercase!).
-# uid= defaults to 0 if user= set (i.e. root).
-HOST_USER = $(user)
-HOST_UID = $(strip $(if $(uid),$(uid),0))
-endif
-
 # cli prefix for commands to run in container
 RUN_DOCK = \
-	docker-compose -p $(MODULE_NAME)_$(HOST_UID) run --rm $(SERVICE_TARGET) sh -l -c
-
-# export such that its passed to shell functions for Docker to pick up.
-export MODULE_NAME
-export HOST_USER
-export HOST_UID
+	docker-compose -p mcup run --rm mcup /bin/sh -l -c
 
 
+.PHONY: docker_build 
+docker_build:
+	docker-compose build
+
+.PHONY: docker_rm 
+docker_rm:
+	yes | docker-compose down
 
 .PHONY: shell 
 shell:
-	$(RUN_DOCK) "cd ~/$(MODULE_NAME) \
-		&& pip install -r requirements.txt \
+	$(RUN_DOCK) "pip install -r requirements.txt \
 		&& bash"
 
 .PHONY: module
 module: 
 	@# ensure there is a symlink from MODULE_NAME to module directory
 	@# then run regular setup.py to build the module
-	$(RUN_DOCK) "cd ~/$(MODULE_NAME) \
+	$(RUN_DOCK) "cd ~/MCUP \
 		&& find ./ -type l -maxdepth 1 |xargs rm -f \
 		&& python3 setup.py sdist"
 
 .PHONY: pylint
 pylint:
-	$(RUN_DOCK) "cd ~/$(MODULE_NAME)/$(MODULE_NAME) \
+	$(RUN_DOCK) "cd ~/MCUP/mcup \
 		&& pylint --rcfile=../.pylintrc * -f parseable"
 
 .PHONY: upload

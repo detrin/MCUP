@@ -1,10 +1,11 @@
-'''Propagartor Error Estimator file.'''
+"""Propagartor Error Estimator file."""
 
 import numpy as np
 from multiprocessing import Pool
 from contextlib import closing
 
 from .lsq import LeastSquares
+
 
 class PropagatorErrorEstimator(object):
     def __init__(self, x_data, y_data, x_err, y_err, w_0):
@@ -22,7 +23,7 @@ class PropagatorErrorEstimator(object):
         self.w_dist = None
         self.fun = None
         self.lsq = None
-        self.lsq_method = 'normal'
+        self.lsq_method = "normal"
 
     def Core(self, run_i):
         x_difference = np.zeros((self.data_len), dtype=self.dtype)
@@ -35,7 +36,7 @@ class PropagatorErrorEstimator(object):
         w, var = self.lsq.fit(self.fun, x_new, y_new, self.w_0, self.lsq_method)
         return [w, var]
 
-    def run(self, lsq, fun, sample_num=10**4, n_thread=1, method='normal'):
+    def run(self, lsq, fun, sample_num=10 ** 4, n_thread=1, method="normal"):
         if not isinstance(lsq, LeastSquares):
             raise TypeError("`lsq` must be LSQ object.")
 
@@ -55,5 +56,3 @@ class PropagatorErrorEstimator(object):
                     self.w_dist[res_i], self.var_dist[res_i] = result[res_i]
 
         return [self.w_dist, self.var_dist]
-
-
