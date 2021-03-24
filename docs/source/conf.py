@@ -36,7 +36,7 @@ extensions = [
 
 apidoc_module_dir = os.path.abspath("../../mcup")
 apidoc_output_dir = os.path.abspath("../source")
-apidoc_excluded_paths = ['tests']
+apidoc_excluded_paths = ["tests"]
 apidoc_separate_modules = True
 
 # Add any paths that contain templates here, relative to this directory.

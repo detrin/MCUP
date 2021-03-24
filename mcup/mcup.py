@@ -4,8 +4,9 @@ mcup.py
 The core module of my example project
 """
 
+
 def fun(x, a, b):
-    """Test fun. 
+    """Test fun.
     
     :param x: sssss
     :type x: array
@@ -13,9 +14,10 @@ def fun(x, a, b):
     :type a: float
 
     Returns:
-        array: Result of linear function. 
+        array: Result of linear function.
     """
     return a * x + b
+
 
 def about_me(your_name):
     """
