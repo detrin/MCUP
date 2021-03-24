@@ -1,4 +1,4 @@
-name: Package main
+name: master
 
 on:
   push:
