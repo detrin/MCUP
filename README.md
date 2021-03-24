@@ -2,7 +2,7 @@
 Monte Carlo uncertainty propagation in regression. Have you ever wondered how to estimate the uncertainty of your regression parameters correctly? MCUP will help you to get it right. 
 
 ## Status
-[![PyPI pyversions](https://img.shields.io/pypi/pyversions/mcup.svg)](https://pypi.org/project/mcup/) [![Build Status](https://travis-ci.org/detrin/MCUP.svg?branch=master)](https://travis-ci.org/detrin/MCUP) [![PyPI version shields.io](https://img.shields.io/pypi/v/mcup.svg)](https://pypi.org/project/mcup/) [![Documentation Status](https://readthedocs.org/projects/mcup/badge/?version=latest)](https://readthedocs.org/projects/mcup/?badge=latest) [![codecov](https://codecov.io/gh/detrin/MCUP/branch/master/graph/badge.svg?token=Dx6elQkztR)](https://codecov.io/gh/detrin/MCUP)
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/mcup.svg)](https://pypi.org/project/mcup/) [![PyPI version shields.io](https://img.shields.io/pypi/v/mcup.svg)](https://pypi.org/project/mcup/) [![master](https://github.com/detrin/MCUP/actions/workflows/package-main.yml/badge.svg)](https://github.com/detrin/MCUP/actions/workflows/package-main.yml) [![Documentation Status](https://readthedocs.org/projects/mcup/badge/?version=latest)](https://readthedocs.org/projects/mcup/?badge=latest) [![codecov](https://codecov.io/gh/detrin/MCUP/branch/master/graph/badge.svg?token=Dx6elQkztR)](https://codecov.io/gh/detrin/MCUP)
 
 
 ## Abstract
