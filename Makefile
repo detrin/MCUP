@@ -86,3 +86,11 @@ docs:
 	sphinx-apidoc -f -o docs/source mcup tests
 	rm docs/source/modules.rst
 	python3 setup.py build_sphinx
+
+.PHONY: quick_test
+quick_test:
+	coverage run -m unittest discover -s ./tests
+	coverage html
+	sphinx-apidoc -f -o docs/source mcup tests
+	rm docs/source/modules.rst
+	python3 setup.py build_sphinx

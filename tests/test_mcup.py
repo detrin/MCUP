@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 
 from mcup import fun
+from mcup import about_me
 
 
 class TestMCUP(unittest.TestCase):
@@ -17,3 +18,6 @@ class TestMCUP(unittest.TestCase):
 
         y = fun(3 * np.ones((10)), 0, 1)
         self.assertTrue(np.allclose(y, 1 * np.ones((10))))
+    
+    def test_about_me(self):
+        self.assertEqual(about_me("Joe"), "The wise Joe loves Python.")
