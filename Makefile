@@ -77,9 +77,17 @@ upload_test_local:
 .PHONY: clean
 clean:
 	$(RUN_DOCK) "cd ~/MCUP \
-		&& rm -rf ./build ./dist ./*.egg-info \
-		&& find ./ -type l -maxdepth 1 |xargs rm -f \
-		&& find ./mcup -type d -name '__pycache__' |xargs rm -rf"
+		&& rm -rf ./dist/build ./dist ./*.egg-info .tox htmlcov \
+		&& find ./ -type l -maxdepth 1 | xargs rm -f \
+		&& find ./mcup -type d -name '__pycache__' |xargs rm -rf \
+		&& find ./mcup -name '*.pyc' | xargs rm -rf"
+
+.PHONY: clean_local
+clean_local:
+	rm -rf docs/build dist *.egg-info .tox htmlcov
+	find ./ -type l -maxdepth 1 | xargs rm -f 
+	find ./mcup -type d -name '__pycache__' | xargs rm -rf
+	find ./mcup -name '*.pyc' | xargs rm -rf
 
 .PHONY: docs
 docs:
