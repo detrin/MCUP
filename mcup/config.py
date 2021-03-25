@@ -26,7 +26,7 @@ y_data = datagen.add_noise_y(const_err=y_err)
 # print(x_data)
 # print(y_data)
 
-parameter_error_estimator(
+params, err = parameter_error_estimator(
     linear_fun,
     x_data,
     y_data,
