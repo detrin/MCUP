@@ -6,6 +6,7 @@ Parameter error estimator functionality.
 
 import numpy as np
 from scipy.optimize import minimize
+from numdifftools import Jacobian
 
 
 def parameter_error_estimator(
@@ -55,14 +56,25 @@ def parameter_error_estimator(
         raise TypeError("Both arguments rtol, atol have to be set.")
 
     def cost_fun(params, x, y):
-        return np.linalg.norm(fun(x, params) - y)
+        y_gen = np.array([fun(x_i, params) for x_i in x])
+        return np.linalg.norm(y_gen - y)
+
+    if method == "Newton-CG":
+
+        def cost_fun_jac(params, x, y):
+            return Jacobian(lambda p: cost_fun(p, x, y))(params).ravel()
+
+    else:
+        cost_fun_jac = None
+
+    # print(cost_fun(w_0, x_data, y_data))
 
     result = minimize(
         cost_fun,
         w_0,
         args=(x_data, y_data),
         method=method,
-        jac=jac,
+        jac=cost_fun_jac,
         hess=hess,
         hessp=hessp,
         bounds=bounds,
@@ -71,7 +83,6 @@ def parameter_error_estimator(
         callback=callback,
         options=options,
     )
-    assert result.success
 
     if iter_num is not None:
         params_agg = np.zeros((iter_num, result.x.shape[0]), dtype=result.x.dtype)
@@ -86,7 +97,7 @@ def parameter_error_estimator(
                 w_0,
                 args=(x_data_loc, y_data_loc),
                 method=method,
-                jac=jac,
+                jac=cost_fun_jac,
                 hess=hess,
                 hessp=hessp,
                 bounds=bounds,
@@ -115,7 +126,7 @@ def parameter_error_estimator(
             rtol=None,
             atol=None,
             method=method,
-            jac=jac,
+            jac=cost_fun_jac,
             hess=hess,
             hessp=hessp,
             bounds=bounds,
@@ -140,7 +151,7 @@ def parameter_error_estimator(
                 w_0,
                 args=(x_data_loc, y_data_loc),
                 method=method,
-                jac=jac,
+                jac=cost_fun_jac,
                 hess=hess,
                 hessp=hessp,
                 bounds=bounds,
@@ -158,7 +169,7 @@ def parameter_error_estimator(
                 M2 = M2 + np.multiply(delta, result.x - p_mean)
                 variance = M2 / (n - 1)
                 p_mean_prev, p_std_prev = p_mean, p_std
-                p_std = variance ** 0.5
+                p_std = np.sqrt(variance)
 
     variance = M2 / (n - 1)
 

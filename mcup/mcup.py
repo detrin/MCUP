@@ -6,6 +6,7 @@ The core module of MCUP package.
 
 import copy
 import numpy as np
+from .pee import parameter_error_estimator
 
 
 class Measurement:
@@ -22,6 +23,10 @@ class Measurement:
         """
         if x is not None:
             self.set_data(x=x, y=y, x_err=x_err, y_err=y_err)
+
+        self.params = None
+        self.fun = None
+        self.jac = None
 
     def set_data(self, x=None, y=None, x_err=None, y_err=None):
         """[summary]
@@ -73,3 +78,53 @@ class Measurement:
 
         if self.x.ndim != self.x_err.ndim:
             raise TypeError("Arguments x and x_err have to have the same length.")
+
+    def set_function(self, fun, params):
+        if not callable(fun):
+            raise TypeError("Argument fun has to be callable.")
+
+        if not isinstance(params, (list, np.ndarray)):
+            raise TypeError("Argument params has to be list or np.ndarray.")
+
+        if isinstance(params, list):
+            params = np.array(params)
+
+        self.params = params
+        self.fun = fun
+
+        return True
+
+    def evaluate_params(self, iter_num=None, rtol=1e-4, atol=1e-4, num_diff=False):
+        if self.fun is None or self.params is None:
+            raise RuntimeError("Function or params not set, use set_function().")
+
+        self.fun(self.x[0], self.params)
+
+        if not num_diff:
+            params_mean, params_std = parameter_error_estimator(
+                self.fun,
+                self.x,
+                self.y,
+                self.x_err,
+                self.y_err,
+                self.params,
+                iter_num=iter_num,
+                rtol=rtol,
+                atol=atol,
+                method="Nelder-Mead",
+            )
+        else:
+            params_mean, params_std = parameter_error_estimator(
+                self.fun,
+                self.x,
+                self.y,
+                self.x_err,
+                self.y_err,
+                self.params,
+                iter_num=iter_num,
+                rtol=rtol,
+                atol=atol,
+                method="Newton-CG",
+            )
+
+        return params_mean, params_std

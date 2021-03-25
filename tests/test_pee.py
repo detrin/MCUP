@@ -64,7 +64,6 @@ class TestPEE(unittest.TestCase):
             self.assertTrue(np.allclose(params_err, np.array([0.01055951, 0.06461363])))
 
             # test for relative convergence
-
             params_mean, params_err = parameter_error_estimator(
                 linear_fun,
                 x_data,
@@ -81,3 +80,39 @@ class TestPEE(unittest.TestCase):
                 np.allclose(params_mean, np.array([0.99893464, 0.05028681]))
             )
             self.assertTrue(np.allclose(params_err, np.array([0.01092106, 0.07493423])))
+
+            # test for fixed num of iterations
+            params_mean, params_err = parameter_error_estimator(
+                linear_fun,
+                x_data,
+                y_data,
+                x_err,
+                y_err,
+                params_0,
+                iter_num=100,
+                method="Newton-CG",
+            )
+
+            self.assertTrue(
+                np.allclose(params_mean, np.array([0.99978039, 0.04768185]))
+            )
+            self.assertTrue(np.allclose(params_err, np.array([0.01064878, 0.06840842])))
+
+            # test for relative convergence
+
+            params_mean, params_err = parameter_error_estimator(
+                linear_fun,
+                x_data,
+                y_data,
+                x_err,
+                y_err,
+                params_0,
+                rtol=1e-4,
+                atol=1e-4,
+                method="Newton-CG",
+            )
+
+            self.assertTrue(
+                np.allclose(params_mean, np.array([0.99824574, 0.05335781]))
+            )
+            self.assertTrue(np.allclose(params_err, np.array([0.00989447, 0.06559818])))
