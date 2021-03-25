@@ -4,19 +4,24 @@ mcup.py
 The core module of MCUP package.
 """
 
+import copy
+import numpy as np
+
 
 class Measurement:
     """An example docstring for a class definition."""
 
     def __init__(self, x=None, y=None, x_err=None, y_err=None):
+        """[summary]
+
+        Args:
+            x ([type], optional): [description]. Defaults to None.
+            y ([type], optional): [description]. Defaults to None.
+            x_err ([type], optional): [description]. Defaults to None.
+            y_err ([type], optional): [description]. Defaults to None.
         """
-        Blah blah blah.
-        Parameters
-        ---------
-        name
-            A string to assign to the `name` instance attribute.
-        """
-        pass
+        if x is not None:
+            self.set_data(x=x, y=y, x_err=x_err, y_err=y_err)
 
     def set_data(self, x=None, y=None, x_err=None, y_err=None):
         """[summary]
@@ -36,28 +41,35 @@ class Measurement:
         self.x_err = copy.deepcopy(x_err)
         self.y_err = copy.deepcopy(y_err)
 
-        params = [self.x, self.y, self.x_err, self.y_err]
-        if None in params:
-            raise AssertionError(
-                "To set Measurement data x, y, x_err, y_err have to be set."
-            )
-        if not all(lambda x: isinstance(x, (list, np.ndarray)), params):
-            raise TypeError("All argument have to be list or np.ndarray.")
+        if x is None or y is None:
+            raise TypeError("To set Measurement data x, y have to be defined.")
+        self.x = copy.deepcopy(x)
+        self.y = copy.deepcopy(y)
 
-        for i in range(4):
-            if isinstance(params[i], list):
-                params[i] = np.array(params[i])
-            if np.ndim(params[i]) != 1:
-                raise TypeError("All argument have to have ndim=1.")
+        if x_err is None:
+            self.x_err = np.zeros_like(self.x)
+
+        if y_err is None:
+            self.y_err = np.zeros_like(self.y)
+
+        def check_item(item, skip_length_check=False):
+            if not isinstance(item, (list, np.ndarray)):
+                raise TypeError("All argument have to be list or np.ndarray.")
+            if isinstance(item, list):
+                item = np.array(item)
+
+            if not skip_length_check:
+                if item.shape[0] != self.x.shape[0]:
+                    raise TypeError("All argument have to have same length.")
+
+            return item
+
+        self.x = check_item(self.x, skip_length_check=True)
+        self.y = check_item(self.y)
+        self.x_err = check_item(self.x_err)
+        self.y_err = check_item(self.y_err)
 
         self.data_len = self.x.shape[0]
 
-        for i in range(4):
-            if np.ndim(params[i].shape[0]) != self.data_len:
-                raise TypeError("All argument have to have same size.")
-
-    def about_self(self):
-        """
-        Return information about an instance created from ExampleClass.
-        """
-        return "I am a very smart {} object.".format(self.name)
+        if self.x.ndim != self.x_err.ndim:
+            raise TypeError("Arguments x and x_err have to have the same length.")

@@ -18,7 +18,7 @@ params = [1, 0]
 y_err = 0.1 * np.ones(data_len)
 datagen = DataGenerator(linear_fun, data_len, boundaries, params=params)
 x_data = datagen.x
-y_data = datagen.add_noise_x(const_err=y_err)
+y_data = datagen.add_noise_y(const_err=y_err)
 
-print(x_data)
-print(y_data)
+# print(x_data)
+# print(y_data)
