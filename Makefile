@@ -97,6 +97,7 @@ docs:
 
 .PHONY: quick_test
 quick_test:
+	python3 -m black .
 	coverage run -m unittest discover -s ./tests
 	coverage html
 	sphinx-apidoc -f -o docs/source mcup tests

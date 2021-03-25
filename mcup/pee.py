@@ -5,7 +5,7 @@ Pee functionality.
 """
 
 
-def nuf(x, a, b):
+def parameter_error_estimator(x, a, b):
     """Test fun. 
     Args:
         x (array): The first parameter.
