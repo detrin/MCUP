@@ -168,7 +168,6 @@ def parameter_error_estimator(
                 p_mean = p_mean + delta / n
                 M2 = M2 + np.multiply(delta, result.x - p_mean)
                 variance = M2 / (n - 1)
-                p_mean_prev, p_std_prev = p_mean, p_std
                 p_std = np.sqrt(variance)
 
     variance = M2 / (n - 1)
