@@ -51,6 +51,17 @@ class TestDataGenerator(unittest.TestCase):
         self.assertTrue(np.allclose(datagen.x, np.array([[1.0, 1.0], [2.0, 2.0]])))
         self.assertTrue(np.allclose(datagen.y, np.array([2.0, 4.0])))
 
+        def fun3(x, c):
+            return c[0] * x + c[1]
+
+        data_len = 5
+        boundaries = [1.0, 5.0]
+        params = [1, 1]
+        datagen = DataGenerator(fun3, data_len, boundaries, params=params)
+
+        self.assertTrue(np.allclose(datagen.x, np.array([1.0, 2.0, 3.0, 4.0, 5.0])))
+        self.assertTrue(np.allclose(datagen.y, np.array([2.0, 3.0, 4.0, 5.0, 6.0])))
+
     def test_add_noise(self):
         def fun(x):
             return x

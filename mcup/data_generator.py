@@ -10,7 +10,9 @@ from .utils import local_numpy_seed
 
 
 class DataGenerator:
-    def __init__(self, fun, data_len, boundaries, seed=None, dtype=np.float64):
+    def __init__(
+        self, fun, data_len, boundaries, seed=None, dtype=np.float64, params=None
+    ):
         """DataGenerator takes function and generates data with specified data length and boundaries. Dimensionality 
         of x data is given by shape of boundaries.
 
@@ -80,7 +82,10 @@ class DataGenerator:
         self.seed = seed
         self.y = np.zeros((data_len), dtype=dtype)
         for i in range(self.data_len):
-            self.y[i] = fun(self.x[i])
+            if params is None:
+                self.y[i] = fun(self.x[i])
+            else:
+                self.y[i] = fun(self.x[i], params)
 
     def __add_noise(self, data, const_err=None, stat_error=None):
         """[summary]
