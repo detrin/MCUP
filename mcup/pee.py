@@ -15,7 +15,9 @@ def parameter_error_estimator(
     x_err,
     y_err,
     w_0,
-    iter_num=1000,
+    iter_num=None,
+    rtol=None,
+    atol=None,
     method=None,
     jac=None,
     hess=None,
@@ -46,6 +48,11 @@ def parameter_error_estimator(
         callback ([type], optional): [description]. Defaults to None.
         options ([type], optional): [description]. Defaults to None.
     """
+    if iter_num is None and rtol is None and atol is None:
+        raise TypeError("Argument iter_num or arguments rtol, atol have to be set.")
+
+    if iter_num is None and (rtol is None or atol is None):
+        raise TypeError("Both arguments rtol, atol have to be set.")
 
     def cost_fun(params, x, y):
         return np.linalg.norm(fun(x, params) - y)
@@ -66,16 +73,47 @@ def parameter_error_estimator(
     )
     assert result.success
 
-    params_agg = np.zeros((iter_num, result.x.shape[0]), dtype=result.x.dtype)
-    run_i = 0
-    while run_i < iter_num:
-        x_data_loc = x_data + np.random.normal(loc=0.0, scale=x_err)
-        y_data_loc = y_data + np.random.normal(loc=0.0, scale=y_err)
+    if iter_num is not None:
+        params_agg = np.zeros((iter_num, result.x.shape[0]), dtype=result.x.dtype)
+        n, p_mean, M2 = 0, np.zeros_like(w_0), np.zeros_like(w_0)
 
-        result = minimize(
-            cost_fun,
+        while n < iter_num:
+            x_data_loc = x_data + np.random.normal(loc=0.0, scale=x_err)
+            y_data_loc = y_data + np.random.normal(loc=0.0, scale=y_err)
+
+            result = minimize(
+                cost_fun,
+                w_0,
+                args=(x_data_loc, y_data_loc),
+                method=method,
+                jac=jac,
+                hess=hess,
+                hessp=hessp,
+                bounds=bounds,
+                constraints=constraints,
+                tol=tol,
+                callback=callback,
+                options=options,
+            )
+            if result.success:
+                # params_agg[n] = result.x
+                n += 1
+                delta = result.x - p_mean
+                p_mean = p_mean + delta / n
+                M2 = M2 + np.multiply(delta, result.x - p_mean)
+
+    else:
+        params_agg = []
+        p_mean, p_std = parameter_error_estimator(
+            fun,
+            x_data,
+            y_data,
+            x_err,
+            y_err,
             w_0,
-            args=(x_data_loc, y_data_loc),
+            iter_num=3,
+            rtol=None,
+            atol=None,
             method=method,
             jac=jac,
             hess=hess,
@@ -86,8 +124,42 @@ def parameter_error_estimator(
             callback=callback,
             options=options,
         )
-        if result.success:
-            params_agg[run_i] = result.x
-            run_i += 1
+        p_mean_prev, p_std_prev = 2 * p_mean, 2 * p_std
+        variance = np.zeros_like(p_std)
+        n, M2 = 3, np.zeros_like(w_0)
 
-    return np.mean(params_agg, axis=0), np.std(params_agg, axis=0)
+        while not (
+            np.allclose(p_mean, p_mean_prev, rtol=rtol, atol=atol)
+            and np.allclose(p_std, p_std_prev, rtol=rtol, atol=atol)
+        ):
+            x_data_loc = x_data + np.random.normal(loc=0.0, scale=x_err)
+            y_data_loc = y_data + np.random.normal(loc=0.0, scale=y_err)
+
+            result = minimize(
+                cost_fun,
+                w_0,
+                args=(x_data_loc, y_data_loc),
+                method=method,
+                jac=jac,
+                hess=hess,
+                hessp=hessp,
+                bounds=bounds,
+                constraints=constraints,
+                tol=tol,
+                callback=callback,
+                options=options,
+            )
+            if result.success:
+                # params_agg.append(result.x)
+                n += 1
+                p_mean_prev, p_std_prev = p_mean, p_std
+                delta = result.x - p_mean
+                p_mean = p_mean + delta / n
+                M2 = M2 + np.multiply(delta, result.x - p_mean)
+                variance = M2 / (n - 1)
+                p_mean_prev, p_std_prev = p_mean, p_std
+                p_std = variance ** 0.5
+
+    variance = M2 / (n - 1)
+
+    return p_mean, np.sqrt(variance)

@@ -21,9 +21,32 @@ class TestPEE(unittest.TestCase):
             datagen = DataGenerator(linear_fun, data_len, boundaries, params=params)
             x_data = datagen.x
             y_data = datagen.add_noise_y(const_err=y_err)
-            print(y_data)
 
-            params, err = parameter_error_estimator(
+            with self.assertRaises(TypeError) as context:
+                params_mean, params_err = parameter_error_estimator(
+                    linear_fun,
+                    x_data,
+                    y_data,
+                    x_err,
+                    y_err,
+                    params_0,
+                    method="Nelder-Mead",
+                )
+
+            with self.assertRaises(TypeError) as context:
+                params_mean, params_err = parameter_error_estimator(
+                    linear_fun,
+                    x_data,
+                    y_data,
+                    x_err,
+                    y_err,
+                    params_0,
+                    rtol=1e-4,
+                    method="Nelder-Mead",
+                )
+
+            # test for fixed num of iterations
+            params_mean, params_err = parameter_error_estimator(
                 linear_fun,
                 x_data,
                 y_data,
@@ -34,5 +57,27 @@ class TestPEE(unittest.TestCase):
                 method="Nelder-Mead",
             )
 
-            self.assertTrue(np.allclose(params, np.array([0.99926769, 0.05168353])))
-            self.assertTrue(np.allclose(err, np.array([0.01050658, 0.06428975])))
+            self.assertTrue(
+                np.allclose(params_mean, np.array([0.99926769, 0.05168353]))
+            )
+
+            self.assertTrue(np.allclose(params_err, np.array([0.01055951, 0.06461363])))
+
+            # test for relative convergence
+
+            params_mean, params_err = parameter_error_estimator(
+                linear_fun,
+                x_data,
+                y_data,
+                x_err,
+                y_err,
+                params_0,
+                rtol=1e-4,
+                atol=1e-4,
+                method="Nelder-Mead",
+            )
+
+            self.assertTrue(
+                np.allclose(params_mean, np.array([0.99893464, 0.05028681]))
+            )
+            self.assertTrue(np.allclose(params_err, np.array([0.01092106, 0.07493423])))
