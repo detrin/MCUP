@@ -97,21 +97,21 @@ class TestMeasurement(unittest.TestCase):
 
             measurement.set_function(linear_fun, params)
             params_mean, params_std = measurement.evaluate_params(
-                iter_num=100, num_diff=False
+                iter_num=10, num_diff=False
             )
 
             self.assertTrue(
-                np.allclose(params_mean, np.array([0.99642296, -0.10129166]))
+                np.allclose(params_mean, np.array([0.99351374, -0.08966872]))
             )
 
-            self.assertTrue(np.allclose(params_std, np.array([0.01577898, 0.09591101])))
+            self.assertTrue(np.allclose(params_std, np.array([0.01823801, 0.09489745])))
 
             params_mean, params_std = measurement.evaluate_params(
-                iter_num=100, num_diff=True
+                iter_num=10, num_diff=True
             )
 
             self.assertTrue(
-                np.allclose(params_mean, np.array([0.9941346, -0.09419852]))
+                np.allclose(params_mean, np.array([0.99172421, -0.05093282]))
             )
 
-            self.assertTrue(np.allclose(params_std, np.array([0.01612025, 0.10081446])))
+            self.assertTrue(np.allclose(params_std, np.array([0.012989, 0.08706437])))
