@@ -48,7 +48,6 @@ module:
 module_local:
 	rm -rf ./dist 
 	python3.7 setup.py sdist 
-	twine check dist/$(MODULE_NAME)-$(MODULE_VERSION)*
 
 .PHONY: module_test_local
 module_local:
