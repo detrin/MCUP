@@ -14,8 +14,8 @@ PWD ?= pwd_unknown
 
 # retrieve NAME from /variables file
 MODULE_NAME = mcup
-MODULE_VERSION = 0.1.0
-MODULE_TEST_VERSION = 0.1.9
+MODULE_VERSION = 0.1.1
+MODULE_TEST_VERSION = 0.1.10
 
 # cli prefix for commands to run in container
 RUN_DOCK = \
@@ -77,14 +77,14 @@ upload_test_local:
 .PHONY: clean
 clean:
 	$(RUN_DOCK) "cd ~/MCUP \
-		&& rm -rf ./dist/build ./dist ./*.egg-info .tox htmlcov \
+		&& rm -rf ./dist ./*.egg-info .tox htmlcov \
 		&& find ./ -type l -maxdepth 1 | xargs rm -f \
 		&& find ./mcup -type d -name '__pycache__' |xargs rm -rf \
 		&& find ./mcup -name '*.pyc' | xargs rm -rf"
 
 .PHONY: clean_local
 clean_local:
-	rm -rf docs/build dist *.egg-info .tox htmlcov
+	rm -rf dist *.egg-info .tox htmlcov
 	find ./ -type l -maxdepth 1 | xargs rm -f 
 	find ./mcup -type d -name '__pycache__' | xargs rm -rf
 	find ./mcup -name '*.pyc' | xargs rm -rf

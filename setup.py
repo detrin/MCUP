@@ -31,16 +31,15 @@ class Tox(TestCommand):
 
 
 classifiers = [
-    "Development Status :: 1 - Planning",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
 ]
 
-requires = ["setuptools", "numpy", "scipy"]
+requires = ["setuptools", "numpy", "scipy", "numdifftools"]
 
 extras_require = {
     "reST": ["Sphinx"],
@@ -50,7 +49,7 @@ if os.environ.get("READTHEDOCS", None):
 
 setup(
     name="mcup",
-    version="0.1.9",
+    version="0.1.1",
     description="MCUP will propagate uncertainty of your data points to the parameters of the regression using a Monte Carlo approach.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
