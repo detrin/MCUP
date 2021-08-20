@@ -29,7 +29,10 @@ def parameter_error_estimator(
     callback=None,
     options=None,
 ):
-    """[summary]
+    """This function takes input data and input error and than samples in each iteration data from given normal 
+    distribution. Input function fun will be used in the definition of cost function for least squares. Cost functions
+    is optimized using scipy.optimize.minimize function. Argument iter_num or rtol, atol has to be set in order to 
+    run least squares.
 
     Args:
         fun ([type]): [description]
