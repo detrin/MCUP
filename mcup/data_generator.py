@@ -4,6 +4,9 @@ data_generator.py
 Data generation for testing.
 """
 
+from __future__ import annotations
+
+from typing import Optional
 import numpy as np
 
 from ._utils import local_numpy_seed
@@ -87,16 +90,16 @@ class DataGenerator:
             else:
                 self.y[i] = fun(self.x[i], params)
 
-    def __add_noise(self, data, const_err=None, stat_error=None):
-        """[summary]
+    def __add_noise(self, data: np.ndarray, const_err: Optional[float] = None, stat_error: Optional[float] = None) -> np.ndarray:
+        """Add Gaussian noise to data.
 
         Args:
-            data ([type]): [description]
-            const_err ([type], optional): [description]. Defaults to None.
-            stat_error ([type], optional): [description]. Defaults to None.
+            data: Input data array to add noise to.
+            const_err: Constant (absolute) error standard deviation. Defaults to None.
+            stat_error: Statistical (relative) error standard deviation. Defaults to None.
 
         Returns:
-            [type]: [description]
+            Data array with noise added.
         """
         assert const_err is not None or stat_error is not None
 
@@ -112,28 +115,28 @@ class DataGenerator:
 
         return data_ret
 
-    def add_noise_x(self, const_err=None, stat_error=None):
-        """[summary]
+    def add_noise_x(self, const_err: Optional[float] = None, stat_error: Optional[float] = None) -> np.ndarray:
+        """Return x data with Gaussian noise applied.
 
         Args:
-            const_err ([type], optional): [description]. Defaults to None.
-            stat_error ([type], optional): [description]. Defaults to None.
+            const_err: Constant (absolute) error standard deviation. Defaults to None.
+            stat_error: Statistical (relative) error standard deviation. Defaults to None.
 
         Returns:
-            [type]: [description]
+            x data array with noise added.
         """
         with local_numpy_seed(self.seed):
             return self.__add_noise(self.x, const_err=const_err, stat_error=stat_error)
 
-    def add_noise_y(self, const_err=None, stat_error=None):
-        """[summary]
+    def add_noise_y(self, const_err: Optional[float] = None, stat_error: Optional[float] = None) -> np.ndarray:
+        """Return y data with Gaussian noise applied.
 
         Args:
-            const_err ([type], optional): [description]. Defaults to None.
-            stat_error ([type], optional): [description]. Defaults to None.
+            const_err: Constant (absolute) error standard deviation. Defaults to None.
+            stat_error: Statistical (relative) error standard deviation. Defaults to None.
 
         Returns:
-            [type]: [description]
+            y data array with noise added.
         """
         with local_numpy_seed(self.seed):
             return self.__add_noise(self.y, const_err=const_err, stat_error=stat_error)

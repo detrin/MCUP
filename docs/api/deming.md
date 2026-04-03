@@ -1,0 +1,3 @@
+# DemingRegressor
+
+::: mcup.deming.DemingRegressor

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Callable, Optional
 import numpy as np
 
 from .base import BaseRegressor
@@ -6,7 +9,42 @@ from ._mc import mc_solve
 
 
 class DemingRegressor(BaseRegressor):
-    def __init__(self, func, method="mc", n_iter=10_000, rtol=None, atol=None, optimizer="BFGS"):
+    """Regression estimator using Deming (total least squares) joint optimisation.
+
+    Optimises jointly over model parameters and latent true x values, giving an
+    exact treatment of both x and y measurement errors. Slower than
+    ``XYWeightedRegressor`` but more accurate when x errors are large or the
+    model is strongly nonlinear.
+
+    Supports two solvers selected via the ``method`` argument:
+
+    - ``"analytical"`` — joint optimisation with ``(J^T W J)^{-1}`` covariance.
+    - ``"mc"`` — Monte Carlo sampling with Welford online covariance (default, robust for nonlinear models).
+
+    Parameters:
+        func: Model function with signature ``func(x, params) -> float``.
+        method: Solver to use, either ``"analytical"`` or ``"mc"``. Default ``"mc"``.
+        n_iter: Maximum number of Monte Carlo iterations. Default ``10_000``.
+        rtol: Relative tolerance for MC convergence stopping. Default ``None`` (disabled).
+        atol: Absolute tolerance for MC convergence stopping. Default ``None`` (disabled).
+        optimizer: SciPy optimizer name used for parameter fitting. Default ``"BFGS"``.
+
+    Attributes:
+        params_: Fitted parameter array.
+        params_std_: Standard deviations of fitted parameters.
+        covariance_: Full parameter covariance matrix.
+        n_iter_: Actual number of MC iterations run (MC method only).
+    """
+
+    def __init__(
+        self,
+        func: Callable,
+        method: str = "mc",
+        n_iter: int = 10_000,
+        rtol: Optional[float] = None,
+        atol: Optional[float] = None,
+        optimizer: str = "BFGS",
+    ):
         super().__init__(func, method=method, n_iter=n_iter, rtol=rtol, atol=atol, optimizer=optimizer)
 
     def fit(self, X, y, x_err, y_err, p0):

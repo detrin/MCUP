@@ -1,8 +1,19 @@
+from __future__ import annotations
+
+from typing import Callable, Optional
 import numpy as np
 
 
 class BaseRegressor:
-    def __init__(self, func, method="mc", n_iter=10_000, rtol=None, atol=None, optimizer="Nelder-Mead"):
+    def __init__(
+        self,
+        func: Callable,
+        method: str = "mc",
+        n_iter: int = 10_000,
+        rtol: Optional[float] = None,
+        atol: Optional[float] = None,
+        optimizer: str = "Nelder-Mead",
+    ):
         self.func = func
         self.method = method
         self.n_iter = n_iter

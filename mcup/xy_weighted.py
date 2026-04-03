@@ -17,6 +17,32 @@ def _combined_weights(func, X, params, x_err, y_err):
 
 
 class XYWeightedRegressor(BaseRegressor):
+    """Regression estimator for data where both x and y have measurement errors.
+
+    Uses iteratively reweighted least squares (IRLS) to combine x and y variances
+    via error propagation: ``σ_combined² = σ_y² + (∂f/∂x)² σ_x²``. Faster than
+    ``DemingRegressor`` and well-suited to mildly nonlinear models.
+
+    Supports two solvers selected via the ``method`` argument:
+
+    - ``"analytical"`` — IRLS with ``(J^T W J)^{-1}`` covariance (fast).
+    - ``"mc"`` — Monte Carlo sampling with Welford online covariance (robust for nonlinear models).
+
+    Parameters:
+        func: Model function with signature ``func(x, params) -> float``.
+        method: Solver to use, either ``"analytical"`` or ``"mc"``. Default ``"mc"``.
+        n_iter: Maximum number of Monte Carlo iterations. Default ``10_000``.
+        rtol: Relative tolerance for MC convergence stopping. Default ``None`` (disabled).
+        atol: Absolute tolerance for MC convergence stopping. Default ``None`` (disabled).
+        optimizer: SciPy optimizer name used for parameter fitting. Default ``"Nelder-Mead"``.
+
+    Attributes:
+        params_: Fitted parameter array.
+        params_std_: Standard deviations of fitted parameters.
+        covariance_: Full parameter covariance matrix.
+        n_iter_: Actual number of MC iterations run (MC method only).
+    """
+
     def fit(self, X, y, x_err, y_err, p0, n_irls=10):
         X, y, y_err, x_err = self._validate_inputs(X, y, y_err, x_err)
         p0 = np.asarray(p0, dtype=float)

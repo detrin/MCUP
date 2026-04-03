@@ -1,0 +1,3 @@
+# WeightedRegressor
+
+::: mcup.weighted.WeightedRegressor
