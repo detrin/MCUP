@@ -66,6 +66,12 @@ Using the wrong estimator (OLS when x has errors) breaks coverage:
 ## Install
 
 ```bash
+uv add mcup
+```
+
+Or with pip:
+
+```bash
 pip install mcup
 ```
 
