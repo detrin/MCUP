@@ -47,6 +47,7 @@ nav:
     - Sensor Calibration (y-errors): tutorials/sensor-calibration.md
     - Radioactive Decay (x+y errors): tutorials/radioactive-decay.md
     - Method Comparison (Deming): tutorials/method-comparison.md
+    - Multivariable Regression: tutorials/multivariable-regression.md
   - API Reference:
     - WeightedRegressor: api/weighted.md
     - XYWeightedRegressor: api/xy_weighted.md
