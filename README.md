@@ -11,6 +11,10 @@ Standard least squares (OLS) assumes all observations are equally reliable. Real
 - **Heteroscedastic y-errors** — measurement noise varies across the range. OLS overweights noisy points, biasing the fit and producing overconfident uncertainties.
 - **Errors in x** — when the independent variable is itself measured (time, concentration, displacement), ignoring those errors causes attenuation bias: slopes are pulled toward zero, and uncertainty intervals shrink below their true size.
 
+**Why not just use the covariance matrix from the optimizer?**
+
+When measurement errors are large, the standard approach of reading off `sqrt(diag(cov))` from the fit residuals underestimates the true parameter uncertainty. The covariance matrix tells you how well the optimizer converged — it does not propagate the uncertainty that came *in* with your data. MCUP propagates measurement noise directly through the model so that `params_std_` reflects both fit quality and input uncertainty. For a worked example comparing both approaches, see this [Kaggle notebook on measurement error in regression](https://www.kaggle.com/code/jetakow/measurement-error-in-regression).
+
 MCUP fixes both problems. The figure below illustrates the effect for a linear calibration with heteroscedastic y-errors:
 
 ![Comparison of OLS vs WeightedRegressor](docs/assets/comparison_linear.png)

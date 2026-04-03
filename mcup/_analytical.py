@@ -1,12 +1,23 @@
+from __future__ import annotations
+
+from typing import Callable
+
 import numpy as np
-from scipy.optimize import minimize
 from numdifftools import Jacobian
+from scipy.optimize import minimize
 
 
-def analytical_solve(func, X, y, weights, p0, optimizer):
+def analytical_solve(
+    func: Callable,
+    X: np.ndarray,
+    y: np.ndarray,
+    weights: np.ndarray,
+    p0: np.ndarray,
+    optimizer: str,
+) -> tuple[np.ndarray, np.ndarray]:
     W = np.diag(weights)
 
-    def cost(params):
+    def cost(params: np.ndarray) -> float:
         r = np.array([y[i] - func(X[i], params) for i in range(len(y))])
         return float(r @ W @ r)
 
@@ -18,23 +29,31 @@ def analytical_solve(func, X, y, weights, p0, optimizer):
     return params, cov
 
 
-def deming_analytical_solve(func, X_obs, y_obs, x_err, y_err, p0, optimizer):
+def deming_analytical_solve(
+    func: Callable,
+    X_obs: np.ndarray,
+    y_obs: np.ndarray,
+    x_err: np.ndarray,
+    y_err: np.ndarray,
+    p0: np.ndarray,
+    optimizer: str,
+) -> tuple[np.ndarray, np.ndarray]:
     n_beta = len(p0)
     n = len(y_obs)
-    x_var = x_err ** 2
-    y_var = y_err ** 2
+    x_var = x_err**2
+    y_var = y_err**2
     theta0 = np.concatenate([p0, X_obs.ravel()])
 
-    def cost(theta):
+    def cost(theta: np.ndarray) -> float:
         beta = theta[:n_beta]
         eta = theta[n_beta:].reshape(X_obs.shape)
         x_term = np.sum((X_obs - eta) ** 2 / x_var)
         y_term = np.sum(
             (y_obs - np.array([func(eta[i], beta) for i in range(n)])) ** 2 / y_var
         )
-        return x_term + y_term
+        return float(x_term + y_term)
 
-    def residuals(theta):
+    def residuals(theta: np.ndarray) -> np.ndarray:
         beta = theta[:n_beta]
         eta = theta[n_beta:].reshape(X_obs.shape)
         r_x = (X_obs - eta) / x_err
@@ -45,7 +64,7 @@ def deming_analytical_solve(func, X_obs, y_obs, x_err, y_err, p0, optimizer):
     theta = result.x
     beta = theta[:n_beta]
 
-    J = Jacobian(residuals)(theta)  # shape (2n, n_beta + n)
+    J = Jacobian(residuals)(theta)
     try:
         full_cov = np.linalg.inv(J.T @ J)
     except np.linalg.LinAlgError:

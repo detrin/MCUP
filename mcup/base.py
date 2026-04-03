@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Callable, Optional
+from typing import Any, Callable, Dict, Optional, Tuple, Union
+
 import numpy as np
 
 
@@ -13,7 +14,7 @@ class BaseRegressor:
         rtol: Optional[float] = None,
         atol: Optional[float] = None,
         optimizer: str = "Nelder-Mead",
-    ):
+    ) -> None:
         self.func = func
         self.method = method
         self.n_iter = n_iter
@@ -21,7 +22,7 @@ class BaseRegressor:
         self.atol = atol
         self.optimizer = optimizer
 
-    def get_params(self, deep=True):
+    def get_params(self, deep: bool = True) -> Dict[str, Any]:
         return {
             "func": self.func,
             "method": self.method,
@@ -31,16 +32,25 @@ class BaseRegressor:
             "optimizer": self.optimizer,
         }
 
-    def set_params(self, **params):
+    def set_params(self, **params: Any) -> BaseRegressor:
         for k, v in params.items():
             setattr(self, k, v)
         return self
 
-    def _check_is_fitted(self):
+    def _check_is_fitted(self) -> None:
         if not hasattr(self, "params_"):
             raise ValueError("Estimator is not fitted. Call fit() first.")
 
-    def _validate_inputs(self, X, y, y_err, x_err=None):
+    def _validate_inputs(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        y_err: np.ndarray,
+        x_err: Optional[np.ndarray] = None,
+    ) -> Union[
+        Tuple[np.ndarray, np.ndarray, np.ndarray],
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    ]:
         X = np.asarray(X, dtype=float)
         y = np.asarray(y, dtype=float)
         y_err = np.asarray(y_err, dtype=float)
@@ -55,5 +65,5 @@ class BaseRegressor:
             return X, y, y_err, x_err
         return X, y, y_err
 
-    def fit(self, X, y, **kwargs):
+    def fit(self, X: np.ndarray, y: np.ndarray, **kwargs: Any) -> "BaseRegressor":
         raise NotImplementedError

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from typing import Callable, Optional
+
 import numpy as np
 
-from .base import BaseRegressor
 from ._analytical import deming_analytical_solve
 from ._mc import mc_solve
+from .base import BaseRegressor
 
 
 class DemingRegressor(BaseRegressor):
@@ -19,7 +20,8 @@ class DemingRegressor(BaseRegressor):
     Supports two solvers selected via the ``method`` argument:
 
     - ``"analytical"`` — joint optimisation with ``(J^T W J)^{-1}`` covariance.
-    - ``"mc"`` — Monte Carlo sampling with Welford online covariance (default, robust for nonlinear models).
+    - ``"mc"`` — Monte Carlo sampling with Welford online covariance
+      (default, robust for nonlinear models).
 
     Parameters:
         func: Model function with signature ``func(x, params) -> float``.
@@ -44,11 +46,25 @@ class DemingRegressor(BaseRegressor):
         rtol: Optional[float] = None,
         atol: Optional[float] = None,
         optimizer: str = "BFGS",
-    ):
-        super().__init__(func, method=method, n_iter=n_iter, rtol=rtol, atol=atol, optimizer=optimizer)
+    ) -> None:
+        super().__init__(
+            func,
+            method=method,
+            n_iter=n_iter,
+            rtol=rtol,
+            atol=atol,
+            optimizer=optimizer,
+        )
 
-    def fit(self, X, y, x_err, y_err, p0):
-        X, y, y_err, x_err = self._validate_inputs(X, y, y_err, x_err)
+    def fit(  # type: ignore[override]
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        x_err: np.ndarray,
+        y_err: np.ndarray,
+        p0: np.ndarray,
+    ) -> "DemingRegressor":
+        X, y, y_err, x_err = self._validate_inputs(X, y, y_err, x_err)  # type: ignore[misc]
         p0 = np.asarray(p0, dtype=float)
         n_beta = len(p0)
         n_data = len(y)
@@ -61,31 +77,43 @@ class DemingRegressor(BaseRegressor):
             self.covariance_ = cov
             self.params_std_ = np.sqrt(np.diag(cov))
         else:
-            x_var = x_err ** 2
-            y_var = y_err ** 2
+            x_var = x_err**2
+            y_var = y_err**2
 
-            def cost_fn_builder(x_s, y_s, params_est):
-                def cost(theta):
+            def cost_fn_builder(
+                x_s: np.ndarray, y_s: np.ndarray, params_est: np.ndarray
+            ) -> object:
+                def cost(theta: np.ndarray) -> float:
                     beta = theta[:n_beta]
                     eta = theta[n_beta:].reshape(X.shape)
                     x_term = np.sum((x_s - eta) ** 2 / x_var)
                     y_term = np.sum(
-                        (y_s - np.array([self.func(eta[i], beta) for i in range(n_data)])) ** 2 / y_var
+                        (y_s - np.array([self.func(eta[i], beta) for i in range(n_data)])) ** 2
+                        / y_var
                     )
-                    return x_term + y_term
+                    return float(x_term + y_term)
+
                 return cost
 
-            def extract_params(theta):
+            def extract_params(theta: np.ndarray) -> np.ndarray:
                 return theta[:n_beta]
 
-            def p0_fn(x_s, y_s):
+            def p0_fn(x_s: np.ndarray, y_s: np.ndarray) -> np.ndarray:
                 return np.concatenate([p0, x_s.ravel()])
 
             theta0 = np.concatenate([p0, X.ravel()])
 
             mean, cov, n = mc_solve(
-                cost_fn_builder, X, y, x_err, y_err, theta0,
-                self.n_iter, self.rtol, self.atol, self.optimizer,
+                cost_fn_builder,
+                X,
+                y,
+                x_err,
+                y_err,
+                theta0,
+                self.n_iter,
+                self.rtol,
+                self.atol,
+                self.optimizer,
                 extract_params=extract_params,
                 p0_fn=p0_fn,
             )

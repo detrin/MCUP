@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import contextlib
+from typing import Generator, Optional
+
 import numpy as np
 
 
 @contextlib.contextmanager
-def local_numpy_seed(seed):
+def local_numpy_seed(seed: Optional[int]) -> Generator[None, None, None]:
     if seed is not None:
         state = np.random.get_state()
         np.random.seed(seed)
@@ -14,7 +18,12 @@ def local_numpy_seed(seed):
             np.random.set_state(state)
 
 
-def welford_update(n, mean, cov_agg, x):
+def welford_update(
+    n: int,
+    mean: np.ndarray,
+    cov_agg: np.ndarray,
+    x: np.ndarray,
+) -> tuple[int, np.ndarray, np.ndarray]:
     n = n + 1
     delta = x - mean
     mean = mean + delta / n
@@ -22,7 +31,7 @@ def welford_update(n, mean, cov_agg, x):
     return n, mean, cov_agg
 
 
-def welford_finalize(n, cov_agg):
+def welford_finalize(n: int, cov_agg: np.ndarray) -> np.ndarray:
     if n < 2:
         return np.full_like(cov_agg, np.nan)
     return cov_agg / (n - 1)

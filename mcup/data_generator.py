@@ -1,33 +1,33 @@
-"""
-data_generator.py
-====================================
-Data generation for testing.
-"""
-
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Callable, Optional, Union
+
 import numpy as np
 
 from ._utils import local_numpy_seed
 
 
 class DataGenerator:
-    def __init__(
-        self, fun, data_len, boundaries, seed=None, dtype=np.float64, params=None
-    ):
-        """DataGenerator takes function and generates data with specified data length and boundaries. Dimensionality 
-        of x data is given by shape of boundaries.
+    """Generates synthetic x/y data with optional noise for testing estimators.
 
-        Args:
-            fun (function): Function for generating y data.
-            data_len (int): Length of the data.
-            boundaries (array): One dimensional or multidimensional array, where are specified intervals of x_data. 
-                For example let x be x = (x_1, x_2, x_3), then the boundaries should be given as 
-                [[a_1, b_1], [a_2, b_2], [a_3, b_3]], where [a, b] is an interval.
-            seed (int): Optional seed for noise generator.
-            dtype (array type): Specify the type of the data that will be generated. Default is np.float64.
-        """
+    Parameters:
+        fun: Function for generating y data.
+        data_len: Length of the data.
+        boundaries: 1D ``[a, b]`` or 2D ``[[a_1, b_1], ...]`` array defining x intervals.
+        seed: Optional seed for the noise generator.
+        dtype: NumPy dtype for generated arrays. Default ``np.float64``.
+        params: Optional parameter array passed as second argument to ``fun``.
+    """
+
+    def __init__(
+        self,
+        fun: Callable,
+        data_len: int,
+        boundaries: Union[list, np.ndarray],
+        seed: Optional[int] = None,
+        dtype: Any = np.float64,
+        params: Optional[np.ndarray] = None,
+    ) -> None:
         if not callable(fun):
             raise TypeError("Argument fun has to be callable.")
 
@@ -37,48 +37,52 @@ class DataGenerator:
         if not isinstance(boundaries, (list, np.ndarray)):
             raise TypeError("Argument data_len has to be list or np.ndarray")
 
-        if isinstance(boundaries, list):
-            boundaries = np.array(boundaries)
+        b: np.ndarray = np.array(boundaries) if isinstance(boundaries, list) else boundaries
 
-        if boundaries.ndim != 2 and boundaries.ndim != 1:
+        if b.ndim != 2 and b.ndim != 1:
             raise TypeError(
                 "Argument boundaries has to have exactly dimensionality of two or one."
             )
 
-        if boundaries.ndim == 2 and boundaries.shape[0] == 1:
-            boundaries = boundaries[0]
+        if b.ndim == 2 and b.shape[0] == 1:
+            b = b[0]
 
-        if boundaries.ndim == 2:
-            self.x_dim = boundaries.shape[0]
-            if boundaries.shape[1] != 2:
+        if b.ndim == 2:
+            self.x_dim = b.shape[0]
+            if b.shape[1] != 2:
                 raise TypeError(
-                    "Argument boundaries has to have defined all intervals with exactly two numbers."
+                    "Argument boundaries has to have defined all intervals "
+                    "with exactly two numbers."
                 )
 
             for dim_i in range(self.x_dim):
-                if boundaries[dim_i][0] >= boundaries[dim_i][1]:
+                if b[dim_i][0] >= b[dim_i][1]:
                     raise TypeError("Invalid interval in argument boundaries.")
 
             self.x = np.linspace(
-                boundaries[:, 0],
-                boundaries[:, 1],
+                b[:, 0],
+                b[:, 1],
                 data_len,
                 dtype=dtype,
                 endpoint=True,
             )
 
-        elif boundaries.ndim == 1:
-            if boundaries.shape[0] != 2:
+        elif b.ndim == 1:
+            if b.shape[0] != 2:
                 raise TypeError(
                     "Argument boundaries has to have interval with exactly two numbers."
                 )
 
             self.x_dim = 1
-            if boundaries[0] > boundaries[1]:
+            if b[0] > b[1]:
                 raise TypeError("Invalid interval in argument boundaries.")
 
             self.x = np.linspace(
-                boundaries[0], boundaries[1], (data_len), dtype=dtype, endpoint=True,
+                b[0],
+                b[1],
+                data_len,
+                dtype=dtype,
+                endpoint=True,
             )
 
         self.data_len = data_len
@@ -90,23 +94,18 @@ class DataGenerator:
             else:
                 self.y[i] = fun(self.x[i], params)
 
-    def __add_noise(self, data: np.ndarray, const_err: Optional[float] = None, stat_error: Optional[float] = None) -> np.ndarray:
-        """Add Gaussian noise to data.
-
-        Args:
-            data: Input data array to add noise to.
-            const_err: Constant (absolute) error standard deviation. Defaults to None.
-            stat_error: Statistical (relative) error standard deviation. Defaults to None.
-
-        Returns:
-            Data array with noise added.
-        """
+    def __add_noise(
+        self,
+        data: np.ndarray,
+        const_err: Optional[float] = None,
+        stat_error: Optional[float] = None,
+    ) -> np.ndarray:
         assert const_err is not None or stat_error is not None
 
         if stat_error is None:
-            data_ret = data + np.random.normal(loc=0.0, scale=const_err)
+            assert const_err is not None
+            data_ret: np.ndarray = data + np.random.normal(loc=0.0, scale=const_err)
         elif const_err is None:
-            # This way we leverage numpy package for checking type of stat_error.
             data_ret = np.multiply(data, np.random.normal(loc=1.0, scale=stat_error))
         else:
             data_ret = np.multiply(
@@ -115,28 +114,18 @@ class DataGenerator:
 
         return data_ret
 
-    def add_noise_x(self, const_err: Optional[float] = None, stat_error: Optional[float] = None) -> np.ndarray:
-        """Return x data with Gaussian noise applied.
-
-        Args:
-            const_err: Constant (absolute) error standard deviation. Defaults to None.
-            stat_error: Statistical (relative) error standard deviation. Defaults to None.
-
-        Returns:
-            x data array with noise added.
-        """
+    def add_noise_x(
+        self,
+        const_err: Optional[float] = None,
+        stat_error: Optional[float] = None,
+    ) -> np.ndarray:
         with local_numpy_seed(self.seed):
             return self.__add_noise(self.x, const_err=const_err, stat_error=stat_error)
 
-    def add_noise_y(self, const_err: Optional[float] = None, stat_error: Optional[float] = None) -> np.ndarray:
-        """Return y data with Gaussian noise applied.
-
-        Args:
-            const_err: Constant (absolute) error standard deviation. Defaults to None.
-            stat_error: Statistical (relative) error standard deviation. Defaults to None.
-
-        Returns:
-            y data array with noise added.
-        """
+    def add_noise_y(
+        self,
+        const_err: Optional[float] = None,
+        stat_error: Optional[float] = None,
+    ) -> np.ndarray:
         with local_numpy_seed(self.seed):
             return self.__add_noise(self.y, const_err=const_err, stat_error=stat_error)
