@@ -1,64 +1,109 @@
 # MCUP
-MCUP (Monte Carlo Uncertainity Propagation) is a Python library that estimates the uncertainty of least squares fit parameters with Monte Carlo.
+MCUP (Monte Carlo Uncertainty Propagation) is a Python library for regression with measurement errors. It provides three sklearn-like estimators that correctly propagate x and y measurement uncertainties into parameter confidence intervals.
 
 ## Status
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/mcup.svg)](https://pypi.org/project/mcup/) [![PyPI version shields.io](https://img.shields.io/pypi/v/mcup.svg)](https://pypi.org/project/mcup/) [![master](https://github.com/detrin/MCUP/actions/workflows/package-main.yml/badge.svg)](https://github.com/detrin/MCUP/actions/workflows/package-main.yml) [![Documentation Status](https://readthedocs.org/projects/mcup/badge/?version=latest)](https://readthedocs.org/projects/mcup/?badge=latest) [![codecov](https://codecov.io/gh/detrin/MCUP/branch/master/graph/badge.svg?token=Dx6elQkztR)](https://codecov.io/gh/detrin/MCUP)
 
+## Estimators
 
-## Scope
-The aim of this package is to estimate the error of regression parameters based on error intervals of the input data. 
+| Estimator | Use when | Error model |
+|-----------|----------|-------------|
+| `WeightedRegressor` | Only y has measurement errors | `Σ (y - f(x))² / σ_y²` |
+| `XYWeightedRegressor` | Both x and y have errors | Combined variance via error propagation |
+| `DemingRegressor` | Both x and y have errors (exact) | Joint optimization over parameters + latent true x |
 
-PEE – Parameter Error Estimator, a bootstraping method which, takes input data for lsq (x, y, x_err, y_err), generates datapoints within given errors and calculate mean and std of parameters from lsq fit.
-
+Each estimator supports two solvers via `method`:
+- `"analytical"` — weighted least squares + `(J^T W J)^{-1}` covariance (fast)
+- `"mc"` — Monte Carlo sampling with weighted objective + Welford covariance (robust for nonlinear models)
 
 ## Installing MCUP
-#### PyPI
-
-To install mlxtend, just execute  
 
 ```bash
-python3 -m pip install mcup  
+python3 -m pip install mcup
 ```
 
 #### Dev Version
-
-The MCUP version on PyPI may always be one step behind. You can install the latest development version from the GitHub repository by executing
 
 ```bash
 python3 -m pip install git+https://github.com/detrin/MCUP.git#egg=mcup
 ```
 
-## Example
+## Examples
+
+### y-errors only
+
 ```python
 import numpy as np
-from mcup import Measurement
+from mcup import WeightedRegressor
 
-x_data = np.array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0])
-y_data = np.array([0.1, 0.9, 2.2, 2.8, 3.9, 5.1])
+def line(x, p):
+    return p[0] + p[1] * x
 
-y_sigma = np.array([0.0, 0.1, 0.1, 0.1, 0.1, 0.1])
+x = np.linspace(0, 10, 30)
+y = line(x, [1.0, 2.0]) + np.random.normal(0, 0.5, 30)
+y_err = 0.5 * np.ones(30)
 
+est = WeightedRegressor(line, method="analytical")
+est.fit(x, y, y_err=y_err, p0=[0.0, 0.0])
 
-def fun(x, c):
-    return c[0] * x + c[1]
-
-c_initial_guess = [0.0, 0.0]
-
-measurement = Measurement(x=x_data, y=y_data, y_err=y_sigma)
-measurement.set_function(fun, c_initial_guess)
-
-params_mean, params_std = measurement.evaluate_params(iter_num=1000)
-print(params_mean)
-# [0.9901532  0.02477131]
-print(params_std)
-# [0.01881003 0.04965347]
-
-params_mean, params_std = measurement.evaluate_params(atol=1e-4, rtol=1e-4)
-print(params_mean)
-# [0.98854127 0.02771339]
-print(params_std)
-# [0.0172098  0.04729087]
+print(est.params_)      # [~1.0, ~2.0]
+print(est.params_std_)  # parameter uncertainties
+print(est.covariance_)  # full covariance matrix
 ```
+
+### x and y errors — combined variance (IRLS)
+
+```python
+from mcup import XYWeightedRegressor
+
+x_err = 0.3 * np.ones(30)
+
+est = XYWeightedRegressor(line, method="analytical")
+est.fit(x, y, x_err=x_err, y_err=y_err, p0=[0.0, 0.0])
+
+print(est.params_)
+print(est.params_std_)
+```
+
+### x and y errors — Deming regression (exact joint optimization)
+
+```python
+from mcup import DemingRegressor
+
+est = DemingRegressor(line, method="analytical")
+est.fit(x, y, x_err=x_err, y_err=y_err, p0=[0.0, 0.0])
+
+print(est.params_)
+print(est.params_std_)
+```
+
+### Monte Carlo solver (works for any nonlinear model)
+
+```python
+from mcup import WeightedRegressor
+
+def exponential(x, p):
+    return p[0] * np.exp(p[1] * x)
+
+est = WeightedRegressor(exponential, method="mc", n_iter=5000)
+est.fit(x, y, y_err=y_err, p0=[1.0, 0.1])
+
+print(est.params_)
+print(est.params_std_)
+print(est.n_iter_)  # actual iterations run
+```
+
+### Convergence-based stopping (MC only)
+
+```python
+est = WeightedRegressor(line, method="mc", rtol=1e-4, atol=1e-4)
+est.fit(x, y, y_err=y_err, p0=[0.0, 0.0])
+print(f"Converged after {est.n_iter_} iterations")
+```
+
+## sklearn compatibility
+
+All estimators implement `get_params()` and `set_params()` for use with sklearn pipelines.
 
 ## Contributing
 When contributing to this repository, please first discuss the change you wish to make via issue, email, or any other method with the owners of this repository before making a change.
