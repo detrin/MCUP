@@ -52,7 +52,14 @@ def analytical_solve(
     params = result.x
 
     J = Jacobian(lambda p: np.array([func(X[i], p) for i in range(len(X))]))(params)
-    cov = np.linalg.inv(J.T @ W @ J)
+    JtWJ = J.T @ W @ J
+    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+        try:
+            cov = np.linalg.inv(JtWJ)
+        except np.linalg.LinAlgError:
+            cov = np.full((len(params), len(params)), np.nan)
+    if not np.all(np.isfinite(cov)) or np.any(np.diag(cov) < 0):
+        cov = np.linalg.pinv(JtWJ)
     return params, cov
 
 
