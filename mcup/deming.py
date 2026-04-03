@@ -77,8 +77,8 @@ class DemingRegressor(BaseRegressor):
             self.covariance_ = cov
             self.params_std_ = np.sqrt(np.diag(cov))
         else:
-            x_var = x_err**2
-            y_var = y_err**2
+            x_var: np.ndarray = x_err**2  # type: ignore[assignment]
+            y_var: np.ndarray = y_err**2  # type: ignore[assignment]
 
             def cost_fn_builder(
                 x_s: np.ndarray, y_s: np.ndarray, params_est: np.ndarray
@@ -86,12 +86,14 @@ class DemingRegressor(BaseRegressor):
                 def cost(theta: np.ndarray) -> float:
                     beta = theta[:n_beta]
                     eta = theta[n_beta:].reshape(X.shape)
-                    x_term = np.sum((x_s - eta) ** 2 / x_var)
-                    y_term = np.sum(
-                        (y_s - np.array([self.func(eta[i], beta) for i in range(n_data)])) ** 2
-                        / y_var
+                    x_term: float = float(np.sum((x_s - eta) ** 2 / x_var))
+                    y_term: float = float(
+                        np.sum(
+                            (y_s - np.array([self.func(eta[i], beta) for i in range(n_data)])) ** 2
+                            / y_var
+                        )
                     )
-                    return float(x_term + y_term)
+                    return x_term + y_term
 
                 return cost
 
@@ -99,7 +101,7 @@ class DemingRegressor(BaseRegressor):
                 return theta[:n_beta]
 
             def p0_fn(x_s: np.ndarray, y_s: np.ndarray) -> np.ndarray:
-                return np.concatenate([p0, x_s.ravel()])
+                return np.concatenate([p0, x_s.ravel()])  # type: ignore[return-value]
 
             theta0 = np.concatenate([p0, X.ravel()])
 

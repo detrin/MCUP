@@ -17,13 +17,13 @@ def _combined_weights(
     x_err: np.ndarray,
     y_err: np.ndarray,
 ) -> np.ndarray:
-    var = y_err**2
+    var: np.ndarray = y_err**2  # type: ignore[assignment]
     for i in range(len(X)):
         xi = np.atleast_1d(X[i])
         df_dx = Gradient(lambda x: func(x, params))(xi)
         xe = np.atleast_1d(x_err[i])
         var[i] += float(np.dot(df_dx**2, xe**2))
-    return 1.0 / var
+    return 1.0 / var  # type: ignore[return-value]
 
 
 class XYWeightedRegressor(BaseRegressor):

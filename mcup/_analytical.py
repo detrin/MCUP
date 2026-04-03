@@ -67,25 +67,25 @@ def deming_analytical_solve(
 ) -> tuple[np.ndarray, np.ndarray]:
     n_beta = len(p0)
     n = len(y_obs)
-    x_var = x_err**2
-    y_var = y_err**2
+    x_var: np.ndarray = x_err**2  # type: ignore[assignment]
+    y_var: np.ndarray = y_err**2  # type: ignore[assignment]
     theta0 = np.concatenate([p0, X_obs.ravel()])
 
     def cost(theta: np.ndarray) -> float:
         beta = theta[:n_beta]
         eta = theta[n_beta:].reshape(X_obs.shape)
-        x_term = np.sum((X_obs - eta) ** 2 / x_var)
-        y_term = np.sum(
-            (y_obs - np.array([func(eta[i], beta) for i in range(n)])) ** 2 / y_var
+        x_term: float = float(np.sum((X_obs - eta) ** 2 / x_var))
+        y_term: float = float(
+            np.sum((y_obs - np.array([func(eta[i], beta) for i in range(n)])) ** 2 / y_var)
         )
-        return float(x_term + y_term)
+        return x_term + y_term
 
     def residuals(theta: np.ndarray) -> np.ndarray:
         beta = theta[:n_beta]
         eta = theta[n_beta:].reshape(X_obs.shape)
         r_x = (X_obs - eta) / x_err
         r_y = (y_obs - np.array([func(eta[i], beta) for i in range(n)])) / y_err
-        return np.concatenate([r_x.ravel(), r_y.ravel()])
+        return np.concatenate([r_x.ravel(), r_y.ravel()])  # type: ignore[return-value]
 
     result = minimize(cost, theta0, method=optimizer)
     theta = result.x

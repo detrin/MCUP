@@ -33,5 +33,5 @@ def welford_update(
 
 def welford_finalize(n: int, cov_agg: np.ndarray) -> np.ndarray:
     if n < 2:
-        return np.full_like(cov_agg, np.nan)
-    return cov_agg / (n - 1)
+        return np.full_like(cov_agg, np.nan)  # type: ignore[return-value]
+    return cov_agg / (n - 1)  # type: ignore[return-value]
