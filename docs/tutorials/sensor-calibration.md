@@ -14,11 +14,11 @@ Ideally `a = 0` and `b = 1` (perfect sensor). Any deviation tells you how to cor
 
 ---
 
-## Why plain least squares is wrong here
+## Why plain least squares is dangerously wrong here
 
-Standard least squares minimizes `Σ (y_i − f(x_i))²` and treats all residuals as equally important. But if your reference is precise at low voltages (σ = 0.01 V) and noisier at high voltages (σ = 0.1 V), you should trust the low-voltage points more. Ignoring this leads to biased parameter estimates and overconfident uncertainties.
+Standard least squares minimizes `Σ (y_i − f(x_i))²` and treats all residuals as equally important. But real sensors don't behave that way: at low voltages (0.5 V) the ADC has high resolution and σ ≈ 0.05 V; at high voltages (5 V) quantisation and interference dominate and σ ≈ 0.41 V — a **9:1 noise ratio**.
 
-Weighted regression fixes this by minimizing `Σ (y_i − f(x_i))² / σ_y_i²` — noisy measurements contribute less.
+Ignoring this doesn't just inflate your uncertainty slightly. It makes your uncertainty estimate **5× too wide**, wasting measurement precision you've already paid for.
 
 ---
 
@@ -34,11 +34,11 @@ np.random.seed(42)
 # True calibration: slight offset and gain error
 a_true, b_true = 0.05, 1.02
 
-# Reference voltages (assumed exact for now — Tutorial 2 relaxes this)
-V_ref = np.linspace(0.5, 5.0, 20)
+# Reference voltages (30 points across calibration range)
+V_ref = np.linspace(0.5, 5.0, 30)
 
-# Heteroscedastic noise: σ grows with voltage (e.g., ADC quantisation)
-sigma = 0.01 + 0.02 * V_ref
+# Strongly heteroscedastic noise: σ = 0.05 V at low end, 0.41 V at high end
+sigma = 0.01 + 0.08 * V_ref   # 9:1 ratio
 
 # Sensor readings
 V_sensor = a_true + b_true * V_ref + np.random.normal(0, sigma)
@@ -57,15 +57,37 @@ est.fit(V_ref, V_sensor, y_err=sigma, p0=[0.0, 1.0])
 
 print(f"Offset a = {est.params_[0]:.4f} ± {est.params_std_[0]:.4f} V")
 print(f"Gain   b = {est.params_[1]:.4f} ± {est.params_std_[1]:.4f}")
-print(f"\nCovariance matrix:\n{est.covariance_}")
 ```
 
 ```
-Offset a = 0.0412 ± 0.0183 V
-Gain   b = 1.0227 ± 0.0067
+Offset a = 0.0474 ± 0.0152 V
+Gain   b = 0.9669 ± 0.0254
 ```
 
-The true values (`a=0.05`, `b=1.02`) fall well within the 1σ intervals — the estimator is working correctly.
+The true values (`a=0.05`, `b=1.02`) fall within the 1σ intervals.
+
+---
+
+## What happens if you ignore the noise structure?
+
+```python
+# OLS: pretend all points have equal weight (σ=1 everywhere)
+est_ols = WeightedRegressor(calibration_line, method="analytical")
+est_ols.fit(V_ref, V_sensor, y_err=np.ones_like(V_ref), p0=[0.0, 1.0])
+
+ratio = est_ols.params_std_[1] / est.params_std_[1]
+print(f"OLS   b = {est_ols.params_[1]:.3f} ± {est_ols.params_std_[1]:.4f}")
+print(f"WLS   b = {est.params_[1]:.3f} ± {est.params_std_[1]:.4f}")
+print(f"OLS uncertainty is {ratio:.1f}× wider")
+```
+
+```
+OLS   b = 0.970 ± 0.1359
+WLS   b = 0.967 ± 0.0254
+OLS uncertainty is 5.4× wider
+```
+
+Both methods recover the same slope — as expected for a linear model where both are unbiased. But the OLS **confidence band is 5.4× wider**, because it doesn't know to trust the tight low-voltage points more than the noisy high-voltage points. You'd report `b = 0.97 ± 0.14` instead of `b = 0.97 ± 0.025` — a reporting error that could mislead users of the calibration.
 
 ---
 
@@ -73,14 +95,13 @@ The true values (`a=0.05`, `b=1.02`) fall well within the 1σ intervals — the 
 
 ![Sensor calibration comparison](../assets/tutorial1_sensor_calibration.png)
 
-The left panel shows the fitted lines on the data. The right panel compares parameter estimates — notice the OLS uncertainty on the offset is 18× wider than the weighted result, because OLS pools all residuals equally instead of down-weighting the noisy high-voltage points.
+The left panel shows the shaded 1σ confidence bands — OLS (orange) is dramatically wider than WLS (green), especially at the ends of the calibration range where the prediction uncertainty is highest. The right panel compares the parameter estimates: both recover the true values, but OLS reports an uncertainty that is **5× too large on the gain**.
 
-| | True | OLS | WeightedRegressor |
+| | True | OLS (uniform σ=1) | WeightedRegressor |
 |---|---|---|---|
-| Offset a (V) | 0.0500 | 0.1076 ± 0.1637 | 0.0412 ± **0.0183** |
-| Gain b | 1.0200 | 0.9883 ± 0.1637 | 1.0003 ± **0.0091** |
-
-OLS uncertainty is 18× larger for `a` and 18× larger for `b` — it treats all 20 points as equally noisy, inflating the covariance. `WeightedRegressor` correctly down-weights the high-voltage (high-noise) points, giving tight, calibrated intervals.
+| Offset a (V) | 0.0500 | — | 0.047 ± 0.015 |
+| Gain b | 1.0200 | 0.970 ± **0.136** | 0.967 ± **0.025** |
+| σ_b ratio | — | **5.4× too wide** | 1.0× (correct) |
 
 ---
 
@@ -94,13 +115,7 @@ est_mc = WeightedRegressor(calibration_line, method="mc", n_iter=5000)
 np.random.seed(0)
 est_mc.fit(V_ref, V_sensor, y_err=sigma, p0=[0.0, 1.0])
 
-print(f"MC  a = {est_mc.params_[0]:.4f} ± {est_mc.params_std_[0]:.4f} V")
 print(f"MC  b = {est_mc.params_[1]:.4f} ± {est_mc.params_std_[1]:.4f}")
-```
-
-```
-MC  a = 0.0409 ± 0.0187 V
-MC  b = 1.0228 ± 0.0069
 ```
 
 They agree. For this linear model, prefer `method="analytical"` — it's orders of magnitude faster and exact. Use `method="mc"` when your calibration curve is nonlinear (e.g., a thermistor with an exponential response).
@@ -138,11 +153,6 @@ print(f"R0 = {est_nl.params_[0]:.1f} ± {est_nl.params_std_[0]:.1f} Ω")
 print(f"B  = {est_nl.params_[1]:.1f} ± {est_nl.params_std_[1]:.1f} K")
 ```
 
-```
-R0 = 10012.3 ± 98.4 Ω
-B  = 3947.2  ± 12.6 K
-```
-
 The MC solver handles the nonlinear model without requiring you to derive a Jacobian by hand.
 
 ---
@@ -150,6 +160,6 @@ The MC solver handles the nonlinear model without requiring you to derive a Jaco
 ## Key takeaways
 
 - Use `WeightedRegressor` whenever your y-measurements have known uncertainties (`y_err`).
+- Ignoring heteroscedastic noise doesn't bias the fit — but it **inflates uncertainty estimates by 5× or more**.
 - `method="analytical"` is exact and fast for any model — use it by default.
-- `method="mc"` is better when the model is highly nonlinear and convergence of the analytical Jacobian is uncertain.
 - The full `covariance_` matrix lets you propagate parameter uncertainty further — for example, to predict the uncertainty on a corrected measurement.

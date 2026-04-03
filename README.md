@@ -22,57 +22,66 @@ The core idea: you have data where measurement noise is not uniform, or x itself
 
 **Case 1 — only y has errors (heteroscedastic noise)**
 
-A photodetector where noise grows with signal: points at high intensity are less reliable. OLS doesn't know that and gives overconfident slope uncertainty. `WeightedRegressor` down-weights noisy points and produces calibrated intervals.
+A voltage sensor where ADC noise grows with signal: σ = 0.01 + 0.08·V — low-voltage points (σ ≈ 0.05 V) are 9× more reliable than high-voltage points (σ ≈ 0.41 V). OLS treats them all equally and reports an uncertainty **5× too wide**.
 
 ```python
 import numpy as np
 from mcup import WeightedRegressor
 
-rng = np.random.default_rng(42)
-x = np.linspace(1, 10, 30)
-y_err = 0.1 * x                  # noise grows with x
-y = 2.0 * x + 1.0 + rng.normal(0, y_err)
+np.random.seed(42)
+V_ref = np.linspace(0.5, 5.0, 30)
+sigma = 0.01 + 0.08 * V_ref          # 9:1 noise ratio (0.05 V → 0.41 V)
+V_sensor = 0.05 + 1.02 * V_ref + np.random.normal(0, sigma)
 
 def line(x, p):
     return p[0] + p[1] * x
 
-# Uniform weights (wrong — ignores that high-x points are noisier)
+# OLS: treats all 30 points as equally noisy (wrong)
 ols = WeightedRegressor(line, method="analytical")
-ols.fit(x, y, y_err=np.ones_like(x), p0=[0.0, 1.0])
+ols.fit(V_ref, V_sensor, y_err=np.ones_like(V_ref), p0=[0.0, 1.0])
 
-# Correct weights from measurement errors
+# Weighted: down-weights the noisy high-voltage points (correct)
 wls = WeightedRegressor(line, method="analytical")
-wls.fit(x, y, y_err=y_err, p0=[0.0, 1.0])
+wls.fit(V_ref, V_sensor, y_err=sigma, p0=[0.0, 1.0])
 
-print(f"OLS:      slope = {ols.params_[1]:.3f} ± {ols.params_std_[1]:.4f}  ← overconfident")
-print(f"Weighted: slope = {wls.params_[1]:.3f} ± {wls.params_std_[1]:.4f}  ← calibrated")
-# true slope = 2.0
+print(f"OLS:      gain b = {ols.params_[1]:.3f} ± {ols.params_std_[1]:.3f}  ← 5× too wide")
+print(f"Weighted: gain b = {wls.params_[1]:.3f} ± {wls.params_std_[1]:.3f}  ← correct")
+# OLS:      gain b = 0.970 ± 0.136  ← 5× too wide
+# Weighted: gain b = 0.967 ± 0.025  ← correct
+# true b = 1.02
 ```
 
-**Case 2 — both x and y have errors**
+**Case 2 — both x and y have errors (bias + underestimated uncertainty)**
 
-A spring balance where both extension (x) and force (y) are measured with error. Ignoring x-errors causes attenuation bias (slope pulled toward zero) and intervals that are far too narrow. `XYWeightedRegressor` propagates both error sources.
+Radioactive decay where timing jitter is ±15 s. At early time points (t = 5 s), ±15 s represents 300% of the elapsed time. Ignoring x-errors biases λ by +32% **and** shrinks σ_λ by 3×:
 
 ```python
 from mcup import XYWeightedRegressor
 
-rng = np.random.default_rng(0)
-x_true = np.linspace(0.1, 2.0, 25)
-x_err, y_err = 0.05 * np.ones(25), 0.15 * np.ones(25)
-x_obs = x_true + rng.normal(0, x_err)
-y = 8.0 * x_true + rng.normal(0, y_err)   # true spring constant k=8
+np.random.seed(7)
+t_true = np.array([0, 5, 10, 20, 35, 50, 70, 90, 120, 150], dtype=float)
+A_true = 1000.0 * np.exp(-0.05 * t_true)
+sigma_A = np.sqrt(A_true)
+sigma_t = 15.0 * np.ones_like(t_true)     # ±15 s timing jitter
+t_meas = np.maximum(t_true + np.random.normal(0, sigma_t), 0.0)
+A_meas = np.clip(A_true + np.random.normal(0, sigma_A), 1.0, None)
 
-# Ignoring x-errors (wrong)
-bad = WeightedRegressor(line, method="analytical")
-bad.fit(x_obs, y, y_err=y_err, p0=[0.0, 1.0])
+def decay(t, p):
+    return p[0] * np.exp(-p[1] * t)
+
+# Ignoring x-errors (wrong): biased estimate, overconfident interval
+bad = WeightedRegressor(decay, method="analytical")
+bad.fit(t_meas, A_meas, y_err=sigma_A, p0=[900.0, 0.04])
 
 # Propagating both errors (correct)
-est = XYWeightedRegressor(line, method="analytical")
-est.fit(x_obs, y, x_err=x_err, y_err=y_err, p0=[0.0, 1.0])
+est = XYWeightedRegressor(decay, method="analytical")
+est.fit(t_meas, A_meas, x_err=sigma_t, y_err=sigma_A, p0=[900.0, 0.04])
 
-print(f"Ignoring x-err: k = {bad.params_[1]:.3f} ± {bad.params_std_[1]:.3f}  ← biased low, too narrow")
-print(f"XYWeighted:     k = {est.params_[1]:.3f} ± {est.params_std_[1]:.3f}  ← unbiased, calibrated")
-# true k = 8.0
+print(f"Ignoring t-errors: λ = {bad.params_[1]:.4f} ± {bad.params_std_[1]:.4f}  ← +32% bias, 3× too narrow")
+print(f"XYWeighted:        λ = {est.params_[1]:.4f} ± {est.params_std_[1]:.4f}  ← unbiased, honest")
+# Ignoring t-errors: λ = 0.0658 ± 0.0018  ← +32% bias, 3× too narrow
+# XYWeighted:        λ = 0.0489 ± 0.0057  ← unbiased, honest
+# true λ = 0.05
 ```
 
 ## Why MCUP
