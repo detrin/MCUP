@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 
 from mcup import DataGenerator
-from mcup.utils import local_numpy_seed
+from mcup._utils import local_numpy_seed
 
 
 class TestDataGenerator(unittest.TestCase):

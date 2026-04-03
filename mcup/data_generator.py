@@ -6,7 +6,7 @@ Data generation for testing.
 
 import numpy as np
 
-from .utils import local_numpy_seed
+from ._utils import local_numpy_seed
 
 
 class DataGenerator:

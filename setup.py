@@ -49,7 +49,7 @@ if os.environ.get("READTHEDOCS", None):
 
 setup(
     name="mcup",
-    version="0.1.1",
+    version="0.2.0",
     description="MCUP will propagate uncertainty of your data points to the parameters of the regression using a Monte Carlo approach.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
