@@ -22,7 +22,7 @@ def _combined_weights(
         xi = np.atleast_1d(X[i])
         df_dx = Gradient(lambda x: func(x, params))(xi)
         xe = np.atleast_1d(x_err[i])
-        var[i] += float(np.dot(df_dx**2, xe**2))
+        var[i] += float(np.dot(df_dx.ravel() ** 2, xe.ravel() ** 2))
     return 1.0 / var  # type: ignore[no-any-return]
 
 
