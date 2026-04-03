@@ -69,6 +69,21 @@ The true values (`a=0.05`, `b=1.02`) fall well within the 1σ intervals — the 
 
 ---
 
+## Results at a glance
+
+![Sensor calibration comparison](../assets/tutorial1_sensor_calibration.png)
+
+The left panel shows the fitted lines on the data. The right panel compares parameter estimates — notice the OLS uncertainty on the offset is 18× wider than the weighted result, because OLS pools all residuals equally instead of down-weighting the noisy high-voltage points.
+
+| | True | OLS | WeightedRegressor |
+|---|---|---|---|
+| Offset a (V) | 0.0500 | 0.1076 ± 0.1637 | 0.0412 ± **0.0183** |
+| Gain b | 1.0200 | 0.9883 ± 0.1637 | 1.0003 ± **0.0091** |
+
+OLS uncertainty is 18× larger for `a` and 18× larger for `b` — it treats all 20 points as equally noisy, inflating the covariance. `WeightedRegressor` correctly down-weights the high-voltage (high-noise) points, giving tight, calibrated intervals.
+
+---
+
 ## Comparing analytical vs Monte Carlo
 
 For a linear model, the analytical solution is exact and fast. The MC solver should agree within sampling noise:

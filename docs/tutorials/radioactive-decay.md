@@ -116,6 +116,23 @@ The point estimates are similar (both fit the same data), but the uncertainty fr
 
 ---
 
+## Results at a glance
+
+![Radioactive decay comparison](../assets/tutorial2_radioactive_decay.png)
+
+The left panel shows the fit on the data with both x and y error bars. The right panel makes the uncertainty underestimation obvious — the orange bar (ignoring t-errors) has a visibly smaller error bar than the green bar (XYWeightedRegressor), even though the point estimates are nearly identical.
+
+| | True | Ignoring t-errors | XYWeightedRegressor |
+|---|---|---|---|
+| A₀ (Bq) | 1000.0 | 985.8 ± 14.3 | 978.1 ± **18.6** |
+| λ (s⁻¹) | 0.0500 | 0.0508 ± 0.0013 | 0.0492 ± **0.0019** |
+| T½ (s) | 13.86 | 13.64 ± 0.35 | 14.09 ± **0.54** |
+| σ ratio | — | 1.00× | **1.46×** |
+
+The timing uncertainty adds ~46% extra uncertainty to λ. For a half-life measurement this translates directly: the published `T½ ± σ` interval is 46% too narrow when timing errors are ignored.
+
+---
+
 ## When timing errors dominate
 
 Increase `sigma_t` to 8 seconds (a sloppy experimenter):

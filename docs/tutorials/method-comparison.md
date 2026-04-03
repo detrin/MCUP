@@ -91,6 +91,21 @@ The slope is now very close to the true value (1.05). The intercept uncertainty 
 
 ---
 
+## Results at a glance
+
+![Method comparison](../assets/tutorial3_method_comparison.png)
+
+The left panel shows both fit lines on the data. OLS (dashed orange) is pulled toward the identity line (dotted) due to attenuation bias — x-errors scatter points horizontally, flattening the apparent slope. Deming (solid green) recovers the true slope. The right panel shows both estimators overshoot the true intercept here due to sampling noise, but Deming's uncertainty correctly reflects that x is also uncertain.
+
+| | True | OLS | DemingRegressor |
+|---|---|---|---|
+| Intercept a (μg/mL) | 3.00 | 11.42 ± 2.34 | 2.85 ± **3.11** |
+| Slope b | 1.050 | 0.972 ± 0.018 | 1.053 ± **0.024** |
+
+OLS slope is biased to 0.972 (true: 1.05) — attenuation bias from ignoring `σ_x = 5 μg/mL`. Deming recovers 1.053. The OLS intercept compensates with a high bias (11.4 vs true 3.0). **The OLS uncertainty intervals are also overconfident** — the wider Deming intervals honestly reflect that x is noisy.
+
+---
+
 ## Interpreting the results
 
 ```python
