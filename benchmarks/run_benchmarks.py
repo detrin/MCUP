@@ -6,7 +6,22 @@ from typing import Callable, List, Type
 import numpy as np
 
 from mcup import DemingRegressor, WeightedRegressor, XYWeightedRegressor
+from mcup._analytical import ols_solve
 from mcup.base import BaseRegressor
+
+
+class OLSRegressor(BaseRegressor):
+    """Plain OLS baseline: minimises Σ(y−f(x))² and scales covariance by σ²=SSR/(n−p)."""
+
+    def fit(self, X, y, y_err=None, x_err=None, p0=None):
+        X = np.asarray(X, dtype=float)
+        y = np.asarray(y, dtype=float)
+        p0 = np.asarray(p0, dtype=float)
+        params, cov = ols_solve(self.func, X, y, p0, self.optimizer)
+        self.params_ = params
+        self.covariance_ = cov
+        self.params_std_ = np.sqrt(np.diag(cov))
+        return self
 
 
 # ─── config / result types ────────────────────────────────────────────────────
@@ -337,31 +352,49 @@ def _build_configs(n_samples: int, analytical_only: bool) -> List[BenchmarkConfi
         ))
 
     # ── S1: Linear calibration, homoscedastic ─────────────────────────────────
+    add_single("S1", "Linear calibration — homoscedastic σ_y=0.5 — OLS (ignores σ_y)",
+               "y = a + b·x", ["a", "b"], 50,
+               OLSRegressor, _linear, _s_linear, _gen_linear_homo, note="⚠ OLS")
     add("S1", "Linear calibration — homoscedastic σ_y=0.5, n=50",
         "y = a + b·x", ["a", "b"], 50,
         WeightedRegressor, _linear, _s_linear, _gen_linear_homo)
 
     # ── S2: Linear calibration, heteroscedastic ───────────────────────────────
+    add_single("S2", "Linear calibration — heteroscedastic σ_y=0.1+0.1x — OLS (ignores σ_y)",
+               "y = a + b·x", ["a", "b"], 50,
+               OLSRegressor, _linear, _s_linear, _gen_linear_hetero, note="⚠ OLS")
     add("S2", "Linear calibration — heteroscedastic σ_y=0.1+0.1x, n=50",
         "y = a + b·x", ["a", "b"], 50,
         WeightedRegressor, _linear, _s_linear, _gen_linear_hetero)
 
     # ── S3: Exponential decay, Poisson counting ───────────────────────────────
+    add_single("S3", "Radioactive decay — Poisson y-errors √A(t) — OLS (ignores σ_y)",
+               "A(t) = A₀·exp(−λt)", ["A₀", "λ"], 20,
+               OLSRegressor, _exponential, _s_exp_decay, _gen_exp_decay, note="⚠ OLS")
     add("S3", "Radioactive decay — Poisson y-errors √A(t), n=20",
         "A(t) = A₀·exp(−λt)", ["A₀", "λ"], 20,
         WeightedRegressor, _exponential, _s_exp_decay, _gen_exp_decay)
 
     # ── S4: Power law (anomalous diffusion) ───────────────────────────────────
+    add_single("S4", "Anomalous diffusion power law — σ_y=8%·y — OLS (ignores σ_y)",
+               "MSD = D·t^α", ["D", "α"], 30,
+               OLSRegressor, _power_law, _s_power_law, _gen_power_law, note="⚠ OLS")
     add("S4", "Anomalous diffusion power law — σ_y=8%·y, n=30",
         "MSD = D·t^α", ["D", "α"], 30,
         WeightedRegressor, _power_law, _s_power_law, _gen_power_law)
 
     # ── S5: Gaussian spectral peak, photon counting ───────────────────────────
+    add_single("S5", "Spectral peak (Gaussian) — photon counting — OLS (ignores σ_y)",
+               "I = A·exp(-(x-μ)²/2σ²)", ["A", "μ", "σ"], 40,
+               OLSRegressor, _gaussian_peak, _s_gaussian, _gen_gaussian_peak, note="⚠ OLS")
     add("S5", "Spectral peak (Gaussian) — photon counting, n=40",
         "I = A·exp(-(x-μ)²/2σ²)", ["A", "μ", "σ"], 40,
         WeightedRegressor, _gaussian_peak, _s_gaussian, _gen_gaussian_peak)
 
     # ── S6: Damped oscillator (NMR / mechanical) ──────────────────────────────
+    add_single("S6", "Damped oscillator (NMR/vibration) — σ_y=0.05 — OLS (ignores σ_y)",
+               "y = A·exp(−γt)·sin(ωt+φ)", ["A", "γ", "ω", "φ"], 60,
+               OLSRegressor, _damped_sine, _s_damped_sine, _gen_damped_sine, note="⚠ OLS")
     add("S6", "Damped oscillator (NMR/vibration) — σ_y=0.05, n=60",
         "y = A·exp(−γt)·sin(ωt+φ)", ["A", "γ", "ω", "φ"], 60,
         WeightedRegressor, _damped_sine, _s_damped_sine, _gen_damped_sine, mc_n_iter=300)

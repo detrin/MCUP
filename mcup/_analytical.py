@@ -7,6 +7,33 @@ from numdifftools import Jacobian
 from scipy.optimize import minimize
 
 
+def ols_solve(
+    func: Callable,
+    X: np.ndarray,
+    y: np.ndarray,
+    p0: np.ndarray,
+    optimizer: str,
+) -> tuple[np.ndarray, np.ndarray]:
+    def cost(params: np.ndarray) -> float:
+        r = np.array([y[i] - func(X[i], params) for i in range(len(y))])
+        return float(r @ r)
+
+    result = minimize(cost, p0, method=optimizer)
+    params = result.x
+    n, p = len(y), len(params)
+
+    J = Jacobian(lambda q: np.array([func(X[i], q) for i in range(len(X))]))(params)
+    residuals = np.array([y[i] - func(X[i], params) for i in range(len(y))])
+    sigma2 = float(np.sum(residuals**2)) / max(n - p, 1)
+
+    try:
+        cov = sigma2 * np.linalg.inv(J.T @ J)
+    except np.linalg.LinAlgError:
+        cov = np.full((len(params), len(params)), np.nan)
+
+    return params, cov
+
+
 def analytical_solve(
     func: Callable,
     X: np.ndarray,

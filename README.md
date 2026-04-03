@@ -55,10 +55,25 @@ Validated across 13 physical scenarios (200 independent parameter configurations
 
 Bias and RMSE are relative to the true parameter values. Large RMSE on near-zero intercepts (Beer-Lambert baseline, isotope intercept) reflects small absolute values — the coverage column is the reliable calibration metric.
 
-Using the wrong estimator (OLS when x has errors) breaks coverage:
+### OLS baseline: when ignoring measurement errors breaks uncertainty estimation
+
+Plain OLS (no error weighting) estimates parameter uncertainty from fit residuals alone — `σ² = SSR/(n−p)`. This works when noise is truly uniform. When noise varies across the range, OLS produces miscalibrated intervals even though the parameter estimates themselves may look reasonable.
+
+| Scenario | OLS coverage | WeightedRegressor coverage | What goes wrong |
+|----------|:------------:|:--------------------------:|-----------------|
+| S1 Linear (homo σ_y=0.5) | ✓ 68%/70% | ✓ 68%/70% | — OLS works; noise is uniform |
+| S2 Linear (hetero σ_y=0.1+0.1·x) | ~ 86%/72% | ✓ 71%/72% | Intervals too wide; pooled σ² inflated by noisy high-x points |
+| S3 Radioactive decay (Poisson √A) | ✗ 32%/42% | ✓ 64%/68% | Badly overconfident; large early-time counts dominate residuals |
+| S4 Power law (8% relative noise) | ✓ 66%/66% | ✓ 68%/69% | — OLS approximately ok here |
+| S5 Gaussian peak (Poisson counts) | ✗ 39%/54% | ✓ 66%/70% | Overconfident; amplitude and center poorly constrained |
+| S6 Damped oscillator (uniform σ_y) | ✓ 64%/71% | ✓ 67%/72% | — OLS works; noise is uniform |
+
+**The pattern:** OLS coverage is correct only when σ_y is constant across the range (S1, S6). As soon as noise scales with signal — Poisson counting (S3, S5) or percentage-of-reading errors (S2, S4) — the pooled residual variance is a poor proxy for per-point noise, and uncertainty intervals become unreliable. The parameter estimates themselves are often similar; it is the *uncertainty* that OLS gets wrong.
+
+### Using the wrong estimator when x has errors
 
 | Scenario | Wrong estimator | Coverage | Correct estimator | Coverage |
-|----------|-----------------|----------|-------------------|----------|
+|----------|-----------------|:--------:|-------------------|:--------:|
 | Exp decay + timing errors | WeightedRegressor | ✗ 30% | XYWeightedRegressor | ✓ 64% |
 | Beer-Lambert | WeightedRegressor | ✗ 7% | XYWeightedRegressor | ✓ 68% |
 | Method comparison | WeightedRegressor (OLS) | ✗ 32% | DemingRegressor | ✓ 66% |
