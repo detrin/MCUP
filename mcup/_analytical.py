@@ -85,7 +85,7 @@ def deming_analytical_solve(
         eta = theta[n_beta:].reshape(X_obs.shape)
         r_x = (X_obs - eta) / x_err
         r_y = (y_obs - np.array([func(eta[i], beta) for i in range(n)])) / y_err
-        return np.concatenate([r_x.ravel(), r_y.ravel()])  # type: ignore[return-value]
+        return np.concatenate([r_x.ravel(), r_y.ravel()])  # type: ignore[no-any-return]
 
     result = minimize(cost, theta0, method=optimizer)
     theta = result.x

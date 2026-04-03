@@ -101,7 +101,7 @@ class DemingRegressor(BaseRegressor):
                 return theta[:n_beta]
 
             def p0_fn(x_s: np.ndarray, y_s: np.ndarray) -> np.ndarray:
-                return np.concatenate([p0, x_s.ravel()])  # type: ignore[return-value]
+                return np.concatenate([p0, x_s.ravel()])  # type: ignore[no-any-return]
 
             theta0 = np.concatenate([p0, X.ravel()])
 
