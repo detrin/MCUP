@@ -2,15 +2,27 @@
 
 ## Installation
 
-```bash
-python3 -m pip install mcup
-```
+=== "uv"
+    ```bash
+    uv add mcup
+    ```
 
-**Dev version (latest from GitHub):**
+=== "pip"
+    ```bash
+    pip install mcup
+    ```
 
-```bash
-python3 -m pip install git+https://github.com/detrin/MCUP.git#egg=mcup
-```
+**Latest from master:**
+
+=== "uv"
+    ```bash
+    uv add git+https://github.com/detrin/MCUP.git
+    ```
+
+=== "pip"
+    ```bash
+    pip install git+https://github.com/detrin/MCUP.git
+    ```
 
 ---
 
