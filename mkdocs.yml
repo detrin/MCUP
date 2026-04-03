@@ -42,6 +42,7 @@ nav:
     - Getting Started: guide/getting-started.md
     - Choosing an Estimator: guide/choosing-estimator.md
     - Method Comparison & Benchmarks: guide/method-comparison.md
+    - Performance: guide/performance.md
   - Tutorials:
     - Sensor Calibration (y-errors): tutorials/sensor-calibration.md
     - Radioactive Decay (x+y errors): tutorials/radioactive-decay.md
