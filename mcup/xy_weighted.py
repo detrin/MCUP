@@ -1,0 +1,49 @@
+import numpy as np
+from numdifftools import Gradient
+
+from .base import BaseRegressor
+from ._analytical import analytical_solve
+from ._mc import mc_solve
+
+
+def _combined_weights(func, X, params, x_err, y_err):
+    var = y_err ** 2
+    for i in range(len(X)):
+        xi = np.atleast_1d(X[i])
+        df_dx = Gradient(lambda x: func(x, params))(xi)
+        xe = np.atleast_1d(x_err[i])
+        var[i] += float(np.dot(df_dx ** 2, xe ** 2))
+    return 1.0 / var
+
+
+class XYWeightedRegressor(BaseRegressor):
+    def fit(self, X, y, x_err, y_err, p0, n_irls=10):
+        X, y, y_err, x_err = self._validate_inputs(X, y, y_err, x_err)
+        p0 = np.asarray(p0, dtype=float)
+
+        if self.method == "analytical":
+            params = p0.copy()
+            for _ in range(n_irls):
+                weights = _combined_weights(self.func, X, params, x_err, y_err)
+                params, cov = analytical_solve(self.func, X, y, weights, params, self.optimizer)
+            self.params_ = params
+            self.covariance_ = cov
+            self.params_std_ = np.sqrt(np.diag(cov))
+        else:
+            def cost_fn_builder(x_s, y_s, params_est):
+                weights = _combined_weights(self.func, x_s, params_est, x_err, y_err)
+                def cost(params):
+                    r = np.array([y_s[i] - self.func(x_s[i], params) for i in range(len(y_s))])
+                    return float(np.dot(r ** 2, weights))
+                return cost
+
+            mean, cov, n = mc_solve(
+                cost_fn_builder, X, y, x_err, y_err, p0,
+                self.n_iter, self.rtol, self.atol, self.optimizer,
+            )
+            self.params_ = mean
+            self.covariance_ = cov
+            self.params_std_ = np.sqrt(np.diag(cov))
+            self.n_iter_ = n
+
+        return self
