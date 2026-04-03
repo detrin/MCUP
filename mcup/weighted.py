@@ -17,7 +17,10 @@ class WeightedRegressor(BaseRegressor):
     - ``"mc"`` — Monte Carlo sampling with Welford online covariance (robust for nonlinear models).
 
     Parameters:
-        func: Model function with signature ``func(x, params) -> float``.
+        func: Model function with signature ``func(x, params) -> float``, where
+            ``x`` is a scalar for 1-D input or a length-k array for k-dimensional
+            input.  The model receives ``X[i]`` directly, so no signature change
+            is needed when X is multivariable.
         method: Solver to use, either ``"analytical"`` or ``"mc"``. Default ``"mc"``.
         n_iter: Maximum number of Monte Carlo iterations. Default ``10_000``.
         rtol: Relative tolerance for MC convergence stopping. Default ``None`` (disabled).
@@ -29,6 +32,10 @@ class WeightedRegressor(BaseRegressor):
         params_std_: Standard deviations of fitted parameters.
         covariance_: Full parameter covariance matrix.
         n_iter_: Actual number of MC iterations run (MC method only).
+
+    Notes:
+        ``X`` may be shape ``(n,)`` for scalar input or ``(n, k)`` for
+        k-dimensional input per data point.
     """
 
     def fit(  # type: ignore[override]

@@ -24,7 +24,9 @@ class DemingRegressor(BaseRegressor):
       (default, robust for nonlinear models).
 
     Parameters:
-        func: Model function with signature ``func(x, params) -> float``.
+        func: Model function with signature ``func(x, params) -> float``, where
+            ``x`` is a scalar for 1-D input or a length-k array for k-dimensional
+            input.
         method: Solver to use, either ``"analytical"`` or ``"mc"``. Default ``"mc"``.
         n_iter: Maximum number of Monte Carlo iterations. Default ``10_000``.
         rtol: Relative tolerance for MC convergence stopping. Default ``None`` (disabled).
@@ -36,6 +38,13 @@ class DemingRegressor(BaseRegressor):
         params_std_: Standard deviations of fitted parameters.
         covariance_: Full parameter covariance matrix.
         n_iter_: Actual number of MC iterations run (MC method only).
+
+    Notes:
+        ``X`` may be shape ``(n,)`` for scalar input or ``(n, k)`` for k-dimensional
+        input per data point.  ``x_err`` must match ``X.shape`` exactly; set a column
+        to zero for any feature that is known exactly.  Zero-error features are pinned
+        to their observed values inside the joint optimisation — they are excluded from
+        the latent-variable cost to avoid division by zero.
     """
 
     def __init__(
@@ -79,6 +88,10 @@ class DemingRegressor(BaseRegressor):
         else:
             x_var: np.ndarray = x_err**2  # type: ignore[assignment]
             y_var: np.ndarray = y_err**2  # type: ignore[assignment]
+            # Zero-error features are known exactly: pin them to observed values
+            # and exclude them from the x-residual cost to avoid division by zero.
+            x_free: np.ndarray = x_var > 0  # type: ignore[assignment]
+            x_var_safe: np.ndarray = np.where(x_free, x_var, 1.0)  # type: ignore[assignment]
 
             def cost_fn_builder(
                 x_s: np.ndarray, y_s: np.ndarray, params_est: np.ndarray
@@ -86,10 +99,13 @@ class DemingRegressor(BaseRegressor):
                 def cost(theta: np.ndarray) -> float:
                     beta = theta[:n_beta]
                     eta = theta[n_beta:].reshape(X.shape)
-                    x_term: float = float(np.sum((x_s - eta) ** 2 / x_var))
+                    eta_eval = np.where(x_free, eta, x_s)
+                    x_sq = np.where(x_free, (x_s - eta) ** 2 / x_var_safe, 0.0)
+                    x_term: float = float(np.sum(x_sq))
+                    y_hat = np.array([self.func(eta_eval[i], beta) for i in range(n_data)])
                     y_term: float = float(
                         np.sum(
-                            (y_s - np.array([self.func(eta[i], beta) for i in range(n_data)])) ** 2
+                            (y_s - y_hat) ** 2
                             / y_var
                         )
                     )
