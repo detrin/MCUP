@@ -1,3 +1,0 @@
-scipy>=1.4.1
-numpy>=1.19.0
-numdifftools>=0.9.39

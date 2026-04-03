@@ -1,5 +1,0 @@
-coverage
-twine
-tox
-flake8
-black
