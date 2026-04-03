@@ -4,6 +4,77 @@ MCUP (Monte Carlo Uncertainty Propagation) is a Python library for regression wi
 
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/mcup.svg)](https://pypi.org/project/mcup/) [![PyPI version](https://img.shields.io/pypi/v/mcup.svg)](https://pypi.org/project/mcup/) [![CI](https://github.com/detrin/MCUP/actions/workflows/package-main.yml/badge.svg)](https://github.com/detrin/MCUP/actions/workflows/package-main.yml) [![codecov](https://codecov.io/gh/detrin/MCUP/branch/master/graph/badge.svg?token=Dx6elQkztR)](https://codecov.io/gh/detrin/MCUP)
 
+## Install
+
+```bash
+uv add mcup
+```
+
+Or with pip:
+
+```bash
+pip install mcup
+```
+
+## Quick start
+
+The core idea: you have data where measurement noise is not uniform, or x itself is measured. MCUP gives you honest parameter uncertainties in both cases.
+
+**Case 1 — only y has errors (heteroscedastic noise)**
+
+A photodetector where noise grows with signal: points at high intensity are less reliable. OLS doesn't know that and gives overconfident slope uncertainty. `WeightedRegressor` down-weights noisy points and produces calibrated intervals.
+
+```python
+import numpy as np
+from mcup import WeightedRegressor
+
+rng = np.random.default_rng(42)
+x = np.linspace(1, 10, 30)
+y_err = 0.1 * x                  # noise grows with x
+y = 2.0 * x + 1.0 + rng.normal(0, y_err)
+
+def line(x, p):
+    return p[0] + p[1] * x
+
+# Uniform weights (wrong — ignores that high-x points are noisier)
+ols = WeightedRegressor(line, method="analytical")
+ols.fit(x, y, y_err=np.ones_like(x), p0=[0.0, 1.0])
+
+# Correct weights from measurement errors
+wls = WeightedRegressor(line, method="analytical")
+wls.fit(x, y, y_err=y_err, p0=[0.0, 1.0])
+
+print(f"OLS:      slope = {ols.params_[1]:.3f} ± {ols.params_std_[1]:.4f}  ← overconfident")
+print(f"Weighted: slope = {wls.params_[1]:.3f} ± {wls.params_std_[1]:.4f}  ← calibrated")
+# true slope = 2.0
+```
+
+**Case 2 — both x and y have errors**
+
+A spring balance where both extension (x) and force (y) are measured with error. Ignoring x-errors causes attenuation bias (slope pulled toward zero) and intervals that are far too narrow. `XYWeightedRegressor` propagates both error sources.
+
+```python
+from mcup import XYWeightedRegressor
+
+rng = np.random.default_rng(0)
+x_true = np.linspace(0.1, 2.0, 25)
+x_err, y_err = 0.05 * np.ones(25), 0.15 * np.ones(25)
+x_obs = x_true + rng.normal(0, x_err)
+y = 8.0 * x_true + rng.normal(0, y_err)   # true spring constant k=8
+
+# Ignoring x-errors (wrong)
+bad = WeightedRegressor(line, method="analytical")
+bad.fit(x_obs, y, y_err=y_err, p0=[0.0, 1.0])
+
+# Propagating both errors (correct)
+est = XYWeightedRegressor(line, method="analytical")
+est.fit(x_obs, y, x_err=x_err, y_err=y_err, p0=[0.0, 1.0])
+
+print(f"Ignoring x-err: k = {bad.params_[1]:.3f} ± {bad.params_std_[1]:.3f}  ← biased low, too narrow")
+print(f"XYWeighted:     k = {est.params_[1]:.3f} ± {est.params_std_[1]:.3f}  ← unbiased, calibrated")
+# true k = 8.0
+```
+
 ## Why MCUP
 
 Standard least squares (OLS) assumes all observations are equally reliable. Real experiments break this in two common ways:
@@ -77,76 +148,5 @@ Plain OLS (no error weighting) estimates parameter uncertainty from fit residual
 | Exp decay + timing errors | WeightedRegressor | ✗ 30% | XYWeightedRegressor | ✓ 64% |
 | Beer-Lambert | WeightedRegressor | ✗ 7% | XYWeightedRegressor | ✓ 68% |
 | Method comparison | WeightedRegressor (OLS) | ✗ 32% | DemingRegressor | ✓ 66% |
-
-## Install
-
-```bash
-uv add mcup
-```
-
-Or with pip:
-
-```bash
-pip install mcup
-```
-
-## Quick start
-
-The core idea: you have data where measurement noise is not uniform, or x itself is measured. MCUP gives you honest parameter uncertainties in both cases.
-
-**Case 1 — only y has errors (heteroscedastic noise)**
-
-A photodetector where noise grows with signal: points at high intensity are less reliable. OLS doesn't know that and gives overconfident slope uncertainty. `WeightedRegressor` down-weights noisy points and produces calibrated intervals.
-
-```python
-import numpy as np
-from mcup import WeightedRegressor
-
-rng = np.random.default_rng(42)
-x = np.linspace(1, 10, 30)
-y_err = 0.1 * x                  # noise grows with x
-y = 2.0 * x + 1.0 + rng.normal(0, y_err)
-
-def line(x, p):
-    return p[0] + p[1] * x
-
-# Uniform weights (wrong — ignores that high-x points are noisier)
-ols = WeightedRegressor(line, method="analytical")
-ols.fit(x, y, y_err=np.ones_like(x), p0=[0.0, 1.0])
-
-# Correct weights from measurement errors
-wls = WeightedRegressor(line, method="analytical")
-wls.fit(x, y, y_err=y_err, p0=[0.0, 1.0])
-
-print(f"OLS:      slope = {ols.params_[1]:.3f} ± {ols.params_std_[1]:.4f}  ← overconfident")
-print(f"Weighted: slope = {wls.params_[1]:.3f} ± {wls.params_std_[1]:.4f}  ← calibrated")
-# true slope = 2.0
-```
-
-**Case 2 — both x and y have errors**
-
-A spring balance where both extension (x) and force (y) are measured with error. Ignoring x-errors causes attenuation bias (slope pulled toward zero) and intervals that are far too narrow. `XYWeightedRegressor` propagates both error sources.
-
-```python
-from mcup import XYWeightedRegressor
-
-rng = np.random.default_rng(0)
-x_true = np.linspace(0.1, 2.0, 25)
-x_err, y_err = 0.05 * np.ones(25), 0.15 * np.ones(25)
-x_obs = x_true + rng.normal(0, x_err)
-y = 8.0 * x_true + rng.normal(0, y_err)   # true spring constant k=8
-
-# Ignoring x-errors (wrong)
-bad = WeightedRegressor(line, method="analytical")
-bad.fit(x_obs, y, y_err=y_err, p0=[0.0, 1.0])
-
-# Propagating both errors (correct)
-est = XYWeightedRegressor(line, method="analytical")
-est.fit(x_obs, y, x_err=x_err, y_err=y_err, p0=[0.0, 1.0])
-
-print(f"Ignoring x-err: k = {bad.params_[1]:.3f} ± {bad.params_std_[1]:.3f}  ← biased low, too narrow")
-print(f"XYWeighted:     k = {est.params_[1]:.3f} ± {est.params_std_[1]:.3f}  ← unbiased, calibrated")
-# true k = 8.0
-```
 
 See [DEVELOPING.md](DEVELOPING.md) for contributing, running tests, and building docs.
